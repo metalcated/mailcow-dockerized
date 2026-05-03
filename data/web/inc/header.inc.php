@@ -48,7 +48,7 @@ $globalVariables = [
   'mailcow_apps' => $MAILCOW_APPS,
   'app_links' => customize('get', 'app_links'),
   'is_root_uri' => (parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) == '/'),
-  'uri' => $_SERVER['REQUEST_URI'],
+  'uri' => parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?: '/',
 ];
 
 foreach ($globalVariables as $globalVariableName => $globalVariableValue) {
