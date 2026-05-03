@@ -1066,6 +1066,14 @@ function mailbox($_action, $_type, $_data = null, $_extra = null) {
           $relayhost = (isset($_data['relayhost'])) ? intval($_data['relayhost']) : 0;
           $quarantine_notification = (isset($_data['quarantine_notification'])) ? strval($_data['quarantine_notification']) : strval($MAILBOX_DEFAULT_ATTRIBUTES['quarantine_notification']);
           $quarantine_category = (isset($_data['quarantine_category'])) ? strval($_data['quarantine_category']) : strval($MAILBOX_DEFAULT_ATTRIBUTES['quarantine_category']);
+          if (!in_array($quarantine_category, array('add_header', 'reject', 'all'))) {
+            $_SESSION['return'][] = array(
+              'type' => 'danger',
+              'log' => array(__FUNCTION__, $_action, $_type, $_data_log, $_attr),
+              'msg' => 'quarantine_category_invalid'
+            );
+            return false;
+          }
           $quota_b    = ($quota_m * 1048576);
           $mailbox_attrs = json_encode(
             array(
@@ -1546,6 +1554,14 @@ function mailbox($_action, $_type, $_data = null, $_extra = null) {
           $attr['tags']                        = (isset($_data['tags'])) ? $_data['tags'] : array();
           $attr["quarantine_notification"]     = (!empty($_data['quarantine_notification'])) ? $_data['quarantine_notification'] : strval($MAILBOX_DEFAULT_ATTRIBUTES['quarantine_notification']);
           $attr["quarantine_category"]         = (!empty($_data['quarantine_category'])) ? $_data['quarantine_category'] : strval($MAILBOX_DEFAULT_ATTRIBUTES['quarantine_category']);
+          if (!in_array($attr["quarantine_category"], array('add_header', 'reject', 'all'))) {
+            $_SESSION['return'][] = array(
+              'type' => 'danger',
+              'log' => array(__FUNCTION__, $_action, $_type, $_data_log, $_extra),
+              'msg' => 'quarantine_category_invalid'
+            );
+            return false;
+          }
           $attr["rl_frame"]                    = (!empty($_data['rl_frame'])) ? $_data['rl_frame'] : "s";
           $attr["rl_value"]                    = (!empty($_data['rl_value'])) ? $_data['rl_value'] : "";
           $attr["force_pw_update"]             = isset($_data['force_pw_update']) ? intval($_data['force_pw_update']) : intval($MAILBOX_DEFAULT_ATTRIBUTES['force_pw_update']);
@@ -3444,6 +3460,14 @@ function mailbox($_action, $_type, $_data = null, $_extra = null) {
             $attr['tags']                        = (isset($_data['tags'])) ? $_data['tags'] : $is_now['tags'];
             $attr["quarantine_notification"]     = (!empty($_data['quarantine_notification'])) ? $_data['quarantine_notification'] : $is_now['quarantine_notification'];
             $attr["quarantine_category"]         = (!empty($_data['quarantine_category'])) ? $_data['quarantine_category'] : $is_now['quarantine_category'];
+            if (!in_array($attr["quarantine_category"], array('add_header', 'reject', 'all'))) {
+              $_SESSION['return'][] = array(
+                'type' => 'danger',
+                'log' => array(__FUNCTION__, $_action, $_type, $_data_log, $_extra),
+                'msg' => 'quarantine_category_invalid'
+              );
+              continue;
+            }
             $attr["rl_frame"]                    = (!empty($_data['rl_frame'])) ? $_data['rl_frame'] : $is_now['rl_frame'];
             $attr["rl_value"]                    = (!empty($_data['rl_value'])) ? $_data['rl_value'] : $is_now['rl_value'];
             $attr["force_pw_update"]             = isset($_data['force_pw_update']) ? intval($_data['force_pw_update']) : $is_now['force_pw_update'];
