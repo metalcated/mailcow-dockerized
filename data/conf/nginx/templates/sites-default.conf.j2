@@ -107,7 +107,6 @@ location ~ \.php$ {
     fastcgi_pass {{ PHPFPMHOST }}:9002;
     fastcgi_index index.php;
     include /etc/nginx/fastcgi_params;
-    fastcgi_param HTTP_AUTHORIZATION $http_authorization;
     fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
     fastcgi_param PATH_INFO $fastcgi_path_info;
     fastcgi_read_timeout 3600;
@@ -118,7 +117,6 @@ location ~* ^/Autodiscover/Autodiscover.xml {
     fastcgi_split_path_info ^(.+\.php)(/.+)$;
     fastcgi_pass {{ PHPFPMHOST }}:9002;
     include /etc/nginx/fastcgi_params;
-    fastcgi_param HTTP_AUTHORIZATION $http_authorization;
     fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
     try_files /autodiscover.php =404;
 }
@@ -127,7 +125,6 @@ location ~* ^/Autodiscover/Autodiscover.json {
     fastcgi_split_path_info ^(.+\.php)(/.+)$;
     fastcgi_pass {{ PHPFPMHOST }}:9002;
     include /etc/nginx/fastcgi_params;
-    fastcgi_param HTTP_AUTHORIZATION $http_authorization;
     fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
     try_files /autodiscover-json.php =404;
 }
@@ -136,7 +133,6 @@ location ~ /(?:m|M)ail/(?:c|C)onfig-v1.1.xml {
     fastcgi_split_path_info ^(.+\.php)(/.+)$;
     fastcgi_pass {{ PHPFPMHOST }}:9002;
     include /etc/nginx/fastcgi_params;
-    fastcgi_param HTTP_AUTHORIZATION $http_authorization;
     fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
     try_files /autoconfig.php =404;
 }
