@@ -476,6 +476,7 @@ services:
       network_mode: "host"
       volumes:
         - /lib/modules:/lib/modules:ro
+        - ./data/Dockerfiles/netfilter/modules/IPTables.py:/app/modules/IPTables.py:ro,z
 
     watchdog-mailcow:
       image: ghcr.io/mailcow/watchdog:2.07
