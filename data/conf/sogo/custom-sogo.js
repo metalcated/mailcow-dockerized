@@ -67,6 +67,7 @@ if (window.CKEDITOR && typeof window.CKEDITOR.addCss === 'function') {
 
     button.hidden = !hasMessage;
     detailView.classList.toggle('sg-dark-mail-preview', darkPreview && hasMessage);
+    detailView.classList.toggle('sg-light-mail-preview', !darkPreview && hasMessage);
     updateToggle(button);
   }
 
