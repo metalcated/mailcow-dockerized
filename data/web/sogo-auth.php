@@ -8,8 +8,10 @@ $ALLOW_ADMIN_EMAIL_LOGIN = (preg_match(
 $session_var_user_allowed = 'sogo-sso-user-allowed';
 $session_var_pass = 'sogo-sso-pass';
 
+$is_internal_auth = (($_SERVER['SOGO_AUTH_INTERNAL'] ?? '') === '1');
+
 // validate credentials for basic auth requests
-if (isset($_SERVER['PHP_AUTH_USER'])) {
+if ($is_internal_auth && isset($_SERVER['PHP_AUTH_USER'])) {
   // load prerequisites only when required
   require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/prerequisites.inc.php';
   $username = $_SERVER['PHP_AUTH_USER'];
@@ -47,6 +49,10 @@ elseif (isset($_GET['login'])) {
     (($_SESSION['acl']['login_as'] == "1" && $ALLOW_ADMIN_EMAIL_LOGIN !== 0) || ($is_dual === false && $login == $_SESSION['mailcow_cc_username']))) {
     if (filter_var($login, FILTER_VALIDATE_EMAIL)) {
       if (user_get_alias_details($login) !== false) {
+        if (!hasMailboxObjectAccess($_SESSION['mailcow_cc_username'], $_SESSION['mailcow_cc_role'], $login)) {
+          header("Location: /");
+          exit;
+        }
         // load master password
         $sogo_sso_pass = file_get_contents("/etc/sogo-sso/sogo-sso.pass");
         // register username and password in session
@@ -70,7 +76,7 @@ elseif (isset($_GET['login'])) {
   exit;
 }
 // only check for admin-login on sogo GUI requests
-elseif (isset($_SERVER['HTTP_X_ORIGINAL_URI']) && strcasecmp(substr($_SERVER['HTTP_X_ORIGINAL_URI'], 0, 9), "/SOGo/so/") === 0) {
+elseif ($is_internal_auth && isset($_SERVER['HTTP_X_ORIGINAL_URI']) && strcasecmp(substr($_SERVER['HTTP_X_ORIGINAL_URI'], 0, 9), "/SOGo/so/") === 0) {
   // this is an nginx auth_request call, we check for existing sogo-sso session variables
   require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/vars.inc.php';
   if (file_exists($_SERVER['DOCUMENT_ROOT'] . '/inc/vars.local.inc.php')) {
