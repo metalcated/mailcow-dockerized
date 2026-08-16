@@ -24,18 +24,106 @@
       'contrastDefaultColor': 'light',
       'contrastDarkColors': ['50', '100', '500', '600', '700']
     });
-    var mutedAmber = $mdThemingProvider.extendPalette('amber', {
-      '500': '9d6c22',
-      '600': '90601d',
-      '700': '82551a',
-      '800': '704714',
-      '900': '5d390f',
+    var neutralAccent = $mdThemingProvider.extendPalette('blue-grey', {
+      '500': '46515b',
+      '600': '3d474f',
+      '700': '343c43',
+      '800': '2b3238',
+      '900': '22282d',
+      'A100': '77838d',
+      'A200': '606b74',
+      'A400': '46515b',
+      'A700': '343c43',
       'contrastDefaultColor': 'light',
-      'contrastDarkColors': ['50', '100', '200', '300', '400', 'A100', 'A200']
+      'contrastDarkColors': ['50', '100', '200', '300']
     });
 
     $mdThemingProvider.definePalette('mailcow-dark', darkBackground);
-    $mdThemingProvider.definePalette('mailcow-amber', mutedAmber);
+    $mdThemingProvider.definePalette('mailcow-neutral', neutralAccent);
+
+    $mdThemingProvider.registerStyles([
+      '.sg-message-thread {',
+      '  background-color: #30373e;',
+      '}',
+      '.sg-message-thread-first {',
+      '  background-color: #3d474f;',
+      '}',
+      '.sg-quota md-progress-linear .md-container {',
+      '  background-color: #30373e;',
+      '}',
+      '.sg-quota md-progress-linear .md-bar {',
+      '  background-color: #77838d;',
+      '}',
+      '.sg-quota .md-fg.md-primary {',
+      '  color: #9ba6af;',
+      '}',
+      '#detailView {',
+      '  position: relative;',
+      '}',
+      '#detailView .sg-preview-theme-toggle {',
+      '  position: absolute;',
+      '  top: 8px;',
+      '  right: 8px;',
+      '  z-index: 20;',
+      '  width: 40px;',
+      '  min-width: 40px;',
+      '  height: 40px;',
+      '  min-height: 40px;',
+      '  margin: 0;',
+      '  padding: 0;',
+      '  background-color: #30373e;',
+      '  border: 1px solid #46515b;',
+      '  border-radius: 50%;',
+      '  color: #d0d6db;',
+      '  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);',
+      '}',
+      '#detailView .sg-preview-theme-toggle:hover,',
+      '#detailView .sg-preview-theme-toggle:focus {',
+      '  background-color: #46515b;',
+      '}',
+      '#detailView .sg-preview-theme-toggle:focus-visible {',
+      '  outline: 2px solid #d0d6db;',
+      '  outline-offset: 2px;',
+      '}',
+      '#detailView .sg-preview-theme-toggle md-icon {',
+      '  color: #d0d6db;',
+      '}',
+      '#detailView .sg-preview-theme-toggle[hidden] {',
+      '  display: none;',
+      '}',
+      '#detailView.sg-dark-mail-preview,',
+      '#detailView.sg-dark-mail-preview .mailer_mailcontent {',
+      '  background-color: #181d22;',
+      '  color-scheme: dark;',
+      '}',
+      '#detailView.sg-dark-mail-preview .sg-mail-part {',
+      '  background-color: #f5f5f5 !important;',
+      '  color: #111 !important;',
+      '  filter: invert(1) hue-rotate(180deg);',
+      '}',
+      '#detailView.sg-dark-mail-preview .sg-mail-part img,',
+      '#detailView.sg-dark-mail-preview .sg-mail-part video,',
+      '#detailView.sg-dark-mail-preview .sg-mail-part canvas,',
+      '#detailView.sg-dark-mail-preview .sg-mail-part svg {',
+      '  filter: invert(1) hue-rotate(180deg);',
+      '}',
+      '@media print {',
+      '  #detailView .sg-preview-theme-toggle {',
+      '    display: none;',
+      '  }',
+      '  #detailView.sg-dark-mail-preview .sg-mail-part {',
+      '    background-color: #fff !important;',
+      '    color: #000 !important;',
+      '    filter: none;',
+      '  }',
+      '  #detailView.sg-dark-mail-preview .sg-mail-part img,',
+      '  #detailView.sg-dark-mail-preview .sg-mail-part video,',
+      '  #detailView.sg-dark-mail-preview .sg-mail-part canvas,',
+      '  #detailView.sg-dark-mail-preview .sg-mail-part svg {',
+      '    filter: none;',
+      '  }',
+      '}'
+    ].join(''));
 
     $mdThemingProvider.theme('default')
       .primaryPalette('blue', {
@@ -44,7 +132,7 @@
         'hue-2': '900',
         'hue-3': 'A700'
       })
-      .accentPalette('mailcow-amber', {
+      .accentPalette('mailcow-neutral', {
         'default': '700',
         'hue-1': '500',
         'hue-2': '800',
