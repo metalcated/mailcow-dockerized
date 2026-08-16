@@ -211,6 +211,7 @@ services:
         - ./data/conf/sogo/custom-shortlogo.svg:/usr/local/lib/GNUstep/SOGo/WebServerResources/img/sogo-compact.svg:z
         - ./data/conf/sogo/custom-fulllogo.svg:/usr/local/lib/GNUstep/SOGo/WebServerResources/img/sogo-full.svg:z
         - ./data/conf/sogo/custom-fulllogo.png:/usr/local/lib/GNUstep/SOGo/WebServerResources/img/sogo-logo.png:z
+        - ./data/conf/sogo/theme-default.css:/usr/local/lib/GNUstep/SOGo/WebServerResources/css/theme-default.css:z
         - ./data/conf/sogo/custom-theme.js:/usr/local/lib/GNUstep/SOGo/WebServerResources/js/theme.js:z
         - ./data/conf/sogo/custom-sogo.js:/usr/local/lib/GNUstep/SOGo/WebServerResources/js/custom-sogo.js:z
         - mysql-socket-vol-1:/var/run/mysqld/

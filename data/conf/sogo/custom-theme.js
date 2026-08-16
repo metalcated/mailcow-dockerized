@@ -22,8 +22,5 @@
       })
       .backgroundPalette('sogo-grey')
       .dark();
-
-    // The bundled theme stylesheet is light, so generate the dark rules at startup.
-    $mdThemingProvider.generateThemesOnDemand(false);
   }
 })();
