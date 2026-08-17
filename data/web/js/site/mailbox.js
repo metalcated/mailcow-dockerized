@@ -401,6 +401,11 @@ $(document).ready(function() {
     } else {
       $('#force_pw_update').prop('checked', false);
     }
+    if (template.force_tfa == 1){
+      $('#force_tfa').prop('checked', true);
+    } else {
+      $('#force_tfa').prop('checked', false);
+    }
     if (template.sogo_access == 1){
       $('#sogo_access').prop('checked', true);
     } else {
@@ -956,6 +961,7 @@ jQuery(function($){
               'style="min-width:2em;width:' + item.percent_in_use + '%">' + item.percent_in_use + '%' + '</div></div>'
             };
             item.username = escapeHtml(item.username);
+            item.name = escapeHtml(item.name);
 
             if (Array.isArray(item.tags)){
               var tags = '';
@@ -1184,6 +1190,7 @@ jQuery(function($){
             item.attributes.smtp_access = '<i class="text-' + (item.attributes.smtp_access == 1 ? 'success' : 'danger') + ' bi bi-' + (item.attributes.smtp_access == 1 ? 'check-lg' : 'x-lg') + '"><span class="sorting-value">' + (item.attributes.smtp_access == 1 ? '1' : '0') + '</span></i>';
             item.attributes.sieve_access = '<i class="text-' + (item.attributes.sieve_access == 1 ? 'success' : 'danger') + ' bi bi-' + (item.attributes.sieve_access == 1 ? 'check-lg' : 'x-lg') + '"><span class="sorting-value">' + (item.attributes.sieve_access == 1 ? '1' : '0') + '</span></i>';
             item.attributes.sogo_access = '<i class="text-' + (item.attributes.sogo_access == 1 ? 'success' : 'danger') + ' bi bi-' + (item.attributes.sogo_access == 1 ? 'check-lg' : 'x-lg') + '"><span class="sorting-value">' + (item.attributes.sogo_access == 1 ? '1' : '0') + '</span></i>';
+            item.attributes.force_tfa = '<i class="text-' + (item.attributes.force_tfa == 1 ? 'success' : 'danger') + ' bi bi-' + (item.attributes.force_tfa == 1 ? 'check-lg' : 'x-lg') + '"><span class="sorting-value">' + (item.attributes.force_tfa == 1 ? '1' : '0') + '</span></i>';
             if (item.attributes.quarantine_notification === 'never') {
               item.attributes.quarantine_notification = lang.never;
             } else if (item.attributes.quarantine_notification === 'hourly') {
@@ -1316,6 +1323,11 @@ jQuery(function($){
           render: function (data, type) {
             return 1==data?'<i class="bi bi-check-lg"></i>':'<i class="bi bi-x-lg"></i>';
           }
+        },
+        {
+          title: lang.force_tfa,
+          data: 'attributes.force_tfa',
+          defaultContent: ''
         },
         {
           title: lang_edit.ratelimit,

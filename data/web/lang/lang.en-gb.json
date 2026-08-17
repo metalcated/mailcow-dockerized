@@ -844,6 +844,7 @@
         "filters": "Filters",
         "fname": "Full name",
         "force_pw_update": "Force password update at next login",
+        "force_tfa": "TFA",
         "gal": "Global Address List",
         "goto_ham": "Learn as <b>ham</b>",
         "goto_spam": "Learn as <b>spam</b>",

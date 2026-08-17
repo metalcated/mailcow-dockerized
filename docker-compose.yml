@@ -1,7 +1,7 @@
 services:
 
     unbound-mailcow:
-      image: ghcr.io/mailcow/unbound:1.25
+      image: ghcr.io/mailcow/unbound:1.25.1-1
       environment:
         - TZ=${TZ}
         - SKIP_UNBOUND_HEALTHCHECK=${SKIP_UNBOUND_HEALTHCHECK:-n}
@@ -183,7 +183,7 @@ services:
             - phpfpm
 
     sogo-mailcow:
-      image: ghcr.io/mailcow/sogo:5.12.5-3
+      image: ghcr.io/mailcow/sogo:5.12.9-1
       environment:
         - DBNAME=${DBNAME}
         - DBUSER=${DBUSER}
@@ -211,6 +211,7 @@ services:
         - ./data/conf/sogo/custom-shortlogo.svg:/usr/local/lib/GNUstep/SOGo/WebServerResources/img/sogo-compact.svg:z
         - ./data/conf/sogo/custom-fulllogo.svg:/usr/local/lib/GNUstep/SOGo/WebServerResources/img/sogo-full.svg:z
         - ./data/conf/sogo/custom-fulllogo.png:/usr/local/lib/GNUstep/SOGo/WebServerResources/img/sogo-logo.png:z
+        - ./data/conf/sogo/theme-default.css:/usr/local/lib/GNUstep/SOGo/WebServerResources/css/theme-default.css:z
         - ./data/conf/sogo/custom-theme.js:/usr/local/lib/GNUstep/SOGo/WebServerResources/js/theme.js:z
         - ./data/conf/sogo/custom-sogo.js:/usr/local/lib/GNUstep/SOGo/WebServerResources/js/custom-sogo.js:z
         - mysql-socket-vol-1:/var/run/mysqld/
@@ -378,7 +379,7 @@ services:
         - php-fpm-mailcow
         - sogo-mailcow
         - rspamd-mailcow
-      image: ghcr.io/mailcow/nginx:1.06
+      image: ghcr.io/mailcow/nginx:1.30.4-1
       dns:
         - ${IPV4_NETWORK:-172.22.1}.254
       environment:
@@ -458,7 +459,7 @@ services:
             - acme
 
     netfilter-mailcow:
-      image: ghcr.io/mailcow/netfilter:1.62
+      image: ghcr.io/mailcow/netfilter:1.64
       stop_grace_period: 30s
       restart: always
       privileged: true
@@ -476,6 +477,7 @@ services:
       network_mode: "host"
       volumes:
         - /lib/modules:/lib/modules:ro
+        - ./data/Dockerfiles/netfilter/modules/IPTables.py:/app/modules/IPTables.py:ro,z
 
     watchdog-mailcow:
       image: ghcr.io/mailcow/watchdog:2.07

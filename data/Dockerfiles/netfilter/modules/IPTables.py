@@ -1,4 +1,6 @@
 import iptc
+import shlex
+import subprocess
 import time
 import os
 
@@ -72,23 +74,46 @@ class IPTables:
     self.clearTable(iptc.Table6(iptc.Table6.FILTER))
 
   def clearTable(self, filter_table):
-    filter_table.autocommit = False
-    forward_chain = iptc.Chain(filter_table, "FORWARD")
-    input_chain = iptc.Chain(filter_table, "INPUT")
-    mailcow_chain = iptc.Chain(filter_table, self.chain_name)
-    if mailcow_chain in filter_table.chains:
-      for rule in mailcow_chain.rules:
-        mailcow_chain.delete_rule(rule)
-      for rule in forward_chain.rules:
-        if rule.target.name == self.chain_name:
-          forward_chain.delete_rule(rule)
-      for rule in input_chain.rules:
-        if rule.target.name == self.chain_name:
-          input_chain.delete_rule(rule)
-      filter_table.delete_chain(self.chain_name)
-    filter_table.commit()
-    filter_table.refresh()
-    filter_table.autocommit = True
+    try:
+      filter_table.autocommit = False
+      forward_chain = iptc.Chain(filter_table, "FORWARD")
+      input_chain = iptc.Chain(filter_table, "INPUT")
+      mailcow_chain = iptc.Chain(filter_table, self.chain_name)
+      if mailcow_chain in filter_table.chains:
+        for rule in mailcow_chain.rules:
+          mailcow_chain.delete_rule(rule)
+        for rule in forward_chain.rules:
+          if rule.target.name == self.chain_name:
+            forward_chain.delete_rule(rule)
+        for rule in input_chain.rules:
+          if rule.target.name == self.chain_name:
+            input_chain.delete_rule(rule)
+        filter_table.delete_chain(self.chain_name)
+      filter_table.commit()
+      filter_table.refresh()
+    except iptc.errors.XTablesError as ex:
+      self.logger.logWarn('python-iptables failed to clear %s rules, falling back to iptables CLI: %s' % (self.chain_name, ex))
+      self.clearTableWithCli(filter_table)
+    finally:
+      filter_table.autocommit = True
+
+  def clearTableWithCli(self, filter_table):
+    iptables_cmd = 'ip6tables' if isinstance(filter_table, iptc.Table6) else 'iptables'
+    self.deleteChainReferences(iptables_cmd, 'FORWARD')
+    self.deleteChainReferences(iptables_cmd, 'INPUT')
+    subprocess.run([iptables_cmd, '-w', '-F', self.chain_name], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
+    subprocess.run([iptables_cmd, '-w', '-X', self.chain_name], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
+
+  def deleteChainReferences(self, iptables_cmd, chain):
+    rules = subprocess.run([iptables_cmd, '-w', '-S', chain], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, check=False)
+    for line in rules.stdout.splitlines():
+      if ('-j %s' % self.chain_name) not in line:
+        continue
+      rule = shlex.split(line)
+      if not rule or rule[0] != '-A':
+        continue
+      rule[0] = '-D'
+      subprocess.run([iptables_cmd, '-w'] + rule, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
 
   def banIPv4(self, source):
     chain = iptc.Chain(iptc.Table(iptc.Table.FILTER), self.chain_name)
