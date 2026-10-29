@@ -381,7 +381,7 @@ services:
         - php-fpm-mailcow
         - sogo-mailcow
         - rspamd-mailcow
-      image: ghcr.io/mailcow/nginx:1.30.4-1
+      image: ${NGINX_IMAGE:-ghcr.io/mailcow/nginx:1.30.6-1@sha256:68697b99f272527dc38bbfb4c8cf217c02dffc7bc0a0b3b19b0c5256eda2aef4}
       dns:
         - ${IPV4_NETWORK:-172.22.1}.254
       environment:
@@ -402,6 +402,8 @@ services:
         - NGINX_USE_PROXY_PROTOCOL=${NGINX_USE_PROXY_PROTOCOL:-n}
         - TRUSTED_PROXIES=${TRUSTED_PROXIES:-}
       volumes:
+        # Keep the legacy IPv6 variable and renderer paired with this fork's templates.
+        - ./data/Dockerfiles/nginx/bootstrap.py:/bootstrap.py:ro,z
         - ./data/web:/web:ro,z
         - ./data/conf/rspamd/dynmaps:/dynmaps:ro,z
         - ./data/assets/ssl/:/etc/ssl/mail/:ro,z

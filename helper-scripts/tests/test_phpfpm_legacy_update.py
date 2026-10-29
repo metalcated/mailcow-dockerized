@@ -1,4 +1,4 @@
-"""PHP-only regression checks; runtime checks use disposable, offline containers.
+"""PHP-stage regression checks; runtime checks use disposable, offline containers.
 
 Run with Python 3 and Docker Compose installed. Set MAILCOW_TEST_PHP_RUNTIME=1
 to exercise a previously pulled image, and MAILCOW_TEST_PLATFORM=linux/amd64
@@ -44,9 +44,10 @@ def baseline(path):
     return run("git", "show", BASELINE + ":" + path)
 
 
-def compose(source, image=None):
+def compose(source, image=None, nginx_image=None):
     env = os.environ.copy()
     env.pop("PHPFPM_IMAGE", None)
+    env.pop("NGINX_IMAGE", None)
     env.pop("COMPOSE_FILE", None)
     env.update({
         "TZ": "America/New_York", "DBNAME": "fixture", "DBUSER": "fixture",
@@ -56,6 +57,8 @@ def compose(source, image=None):
     })
     if image is not None:
         env["PHPFPM_IMAGE"] = image
+    if nginx_image is not None:
+        env["NGINX_IMAGE"] = nginx_image
     return json.loads(run(
         "docker", "compose", "--env-file", os.devnull,
         "--project-directory", str(ROOT), "-f", "-", "config", "--format", "json",
@@ -66,7 +69,8 @@ def compose(source, image=None):
 class ComposeRegressionTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.source = (ROOT / "docker-compose.yml").read_text()
+        # Seal the PHP stage; the Nginx tests verify later stages preserve it exactly.
+        cls.source = run("git", "show", "5cabaf3c:docker-compose.yml")
         cls.before = compose(baseline("docker-compose.yml"))
         cls.after = compose(cls.source)
 
@@ -150,11 +154,11 @@ class PhpRuntimeTests(unittest.TestCase):
                         ROOT / "data/conf/phpfpm/php-fpm.d/pools.conf")]
         if legacy_startup:
             command += ["--mount", "type=bind,src={},dst=/docker-entrypoint.sh,readonly".format(ROOT / ENTRYPOINT)]
-        for name, target in (("other.ini", "zzz-other.ini"),
+        for ini_name, target in (("other.ini", "zzz-other.ini"),
                              ("upload.ini", "upload.ini"),
                              ("opcache-recommended.ini", "opcache-recommended.ini")):
             command += ["--mount", "type=bind,src={},dst=/usr/local/etc/php/conf.d/{},readonly".format(
-                INI_DIR / name, target)]
+                INI_DIR / ini_name, target)]
         try:
             return run(*command, "--entrypoint", entrypoint, IMAGE, *args)
         except BaseException:
