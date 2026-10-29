@@ -14,6 +14,7 @@ from test_phpfpm_legacy_update import ROOT, compose, run
 
 
 BASELINE = "2a8e8973"
+STAGE = "72055a93"
 OLD_IMAGE = "redis:7.4.8-alpine"
 IMAGE = "redis:7.4.12-alpine@sha256:338fbfc036dc5517ac0b04d6de21521085935336e565f223406180e9d84166e2"
 HELPER = ROOT / "helper-scripts/maintenance/2026-10-redis.sh"
@@ -22,13 +23,13 @@ HELPER = ROOT / "helper-scripts/maintenance/2026-10-redis.sh"
 class RedisComposeTests(unittest.TestCase):
     def test_only_redis_image_changes(self):
         old = compose(run("git", "show", BASELINE + ":docker-compose.yml"))
-        new = compose((ROOT / "docker-compose.yml").read_text())
+        new = compose(run("git", "show", STAGE + ":docker-compose.yml"))
         self.assertEqual(old["services"]["redis-mailcow"].pop("image"), OLD_IMAGE)
         self.assertEqual(new["services"]["redis-mailcow"].pop("image"), IMAGE)
         self.assertEqual(old, new)
 
     def test_image_rollback_and_retry(self):
-        source = (ROOT / "docker-compose.yml").read_text()
+        source = run("git", "show", STAGE + ":docker-compose.yml")
         expected = compose(source)
         expected["services"]["redis-mailcow"]["image"] = OLD_IMAGE
         self.assertEqual(compose(source, redis_image=OLD_IMAGE), expected)

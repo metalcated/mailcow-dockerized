@@ -1,7 +1,7 @@
 services:
 
     unbound-mailcow:
-      image: ghcr.io/mailcow/unbound:1.25.1-1
+      image: ${UNBOUND_IMAGE:-ghcr.io/mailcow/unbound:1.26.2-1@sha256:016bd7056ac86ef3f43ae05d38b7bfa0c59afed69ffac1eab30ea00e0850cb8b}
       environment:
         - TZ=${TZ}
         - SKIP_UNBOUND_HEALTHCHECK=${SKIP_UNBOUND_HEALTHCHECK:-n}
