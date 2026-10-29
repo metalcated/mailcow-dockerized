@@ -44,12 +44,13 @@ def baseline(path):
     return run("git", "show", BASELINE + ":" + path)
 
 
-def compose(source, image=None, nginx_image=None, sogo_image=None, clamd_image=None):
+def compose(source, image=None, nginx_image=None, sogo_image=None, clamd_image=None, redis_image=None):
     env = os.environ.copy()
     env.pop("PHPFPM_IMAGE", None)
     env.pop("NGINX_IMAGE", None)
     env.pop("SOGO_IMAGE", None)
     env.pop("CLAMD_IMAGE", None)
+    env.pop("REDIS_IMAGE", None)
     env.pop("COMPOSE_FILE", None)
     env.update({
         "TZ": "America/New_York", "DBNAME": "fixture", "DBUSER": "fixture",
@@ -65,6 +66,8 @@ def compose(source, image=None, nginx_image=None, sogo_image=None, clamd_image=N
         env["SOGO_IMAGE"] = sogo_image
     if clamd_image is not None:
         env["CLAMD_IMAGE"] = clamd_image
+    if redis_image is not None:
+        env["REDIS_IMAGE"] = redis_image
     return json.loads(run(
         "docker", "compose", "--env-file", os.devnull,
         "--project-directory", str(ROOT), "-f", "-", "config", "--format", "json",

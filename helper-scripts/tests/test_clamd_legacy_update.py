@@ -14,6 +14,7 @@ from test_phpfpm_legacy_update import ROOT, compose, run
 
 
 BASELINE = "4d1a89d2"
+STAGE = "2a8e8973"
 OLD_IMAGE = "ghcr.io/mailcow/clamd:1.71"
 IMAGE = "ghcr.io/mailcow/clamd:1.4.6-1@sha256:0d512b3a179c5f97e6f3132d1f88d9ec72c456fc6f7ba32a664ed4327fbd1436"
 DOC = ROOT / "helper-scripts/maintenance/2026-10-clamd.md"
@@ -22,13 +23,13 @@ DOC = ROOT / "helper-scripts/maintenance/2026-10-clamd.md"
 class ClamdComposeTests(unittest.TestCase):
     def test_only_clamd_image_changes(self):
         old = compose(run("git", "show", BASELINE + ":docker-compose.yml"))
-        new = compose((ROOT / "docker-compose.yml").read_text())
+        new = compose(run("git", "show", STAGE + ":docker-compose.yml"))
         self.assertEqual(old["services"]["clamd-mailcow"].pop("image"), OLD_IMAGE)
         self.assertEqual(new["services"]["clamd-mailcow"].pop("image"), IMAGE)
         self.assertEqual(old, new)
 
     def test_rollback_override_and_retry(self):
-        source = (ROOT / "docker-compose.yml").read_text()
+        source = run("git", "show", STAGE + ":docker-compose.yml")
         expected = compose(source)
         expected["services"]["clamd-mailcow"]["image"] = OLD_IMAGE
         self.assertEqual(compose(source, clamd_image=OLD_IMAGE), expected)
