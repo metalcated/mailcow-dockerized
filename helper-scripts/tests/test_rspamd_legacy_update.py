@@ -33,7 +33,7 @@ exec rspamd -f -u _rspamd -g _rspamd
 class RspamdScopeTests(unittest.TestCase):
     def test_image_only_compose_and_override(self):
         before = compose(run("git", "show", BASELINE + ":docker-compose.yml"))
-        source = (ROOT / "docker-compose.yml").read_text()
+        source = run("git", "show", "cb14bf54:docker-compose.yml")
         after = compose(source)
         before["services"]["rspamd-mailcow"]["image"] = IMAGE
         self.assertEqual(before, after)

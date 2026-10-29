@@ -20,10 +20,10 @@ while preparing these branches.
 | 1 | feature/october-2026-next-unbound | Unbound 1.26.2 image only |
 | 2 | feature/october-2026-next-web | Encoding/OAuth hardening; no proxy-header changes |
 | 3 | feature/october-2026-next-rspamd | Rspamd 4.2.1 and reviewed compatibility changes |
-| 4 | feature/october-2026-next-acme | ACME 1.98 |
-| 5 | feature/october-2026-next-watchdog | Watchdog 2.11 |
-| 6 | feature/october-2026-next-dockerapi | Docker API 2.12 |
-| 7 | feature/october-2026-next-olefy | Olefy 1.15 |
+| 4 | feature/october-2026-next-dockerapi | Docker API 2.12 |
+| 5 | feature/october-2026-next-olefy | Olefy 1.15 |
+| Hold | no deployment branch | ACME 1.98: new MTA-STS schema dependency |
+| Hold | no deployment branch | Watchdog 2.11: assumes absent postfix-tlspol service |
 
 Later branches are not automatically approved for deployment merely because
 they are listed here. Read their stage notes for local evidence and blockers.
@@ -142,7 +142,51 @@ result, verify quarantine/release and normal policy, and reconnect a working
 Outlook account without deleting it. Do not bypass antivirus or weaken spam
 policy to get a green result. A failed test stops this stage.
 
+## Stage 4: Docker API
+
+Pin: `ghcr.io/mailcow/dockerapi:2.12@sha256:90d6f26eb3fb8a47696d8719b71e9159849d5b49e4ce3e48967f2dfb5a8df55a`.
+Actual 2.11/2.12 `modules/DockerApi.py` and certificate-generation entrypoint
+hashes match. The newer list endpoint supports optional `all=true`; its default
+still returns running containers. Offline fixtures on both images verified
+list/detail/error responses, existing reload-method names, stubbed HTTP and
+MC_CHANNEL dispatch, and the packaged event-loop setting. They do not execute
+actions or open a real Docker socket. No new host ports or access controls are
+introduced. The production control plane can restart/reload containers, so it
+still requires its own live check even though mail images remain unchanged.
+
+```sh
+(
+  set -eu
+  set -o pipefail
+  cd /opt/mailcow-dockerized
+  test "$(git branch --show-current)" = 'feature/october-2026-next-rspamd'
+  git switch --track origin/feature/october-2026-next-dockerapi
+  bash helper-scripts/maintenance/2026-10-dockerapi.sh apply
+)
+```
+
+The helper keeps an old-image tag, runs the offline fixture first, replaces only
+Docker API, requires the previous MC_CHANNEL subscription count to recover, and
+checks the actual PHP-to-API container-list path without printing container
+environment variables or issuing actions. Check the admin status/container
+views and watchdog recovery. Do not restart working Dovecot/Postfix to prove an
+API command. Rollback uses the saved `DOCKERAPI_IMAGE` override. Certificate
+reload actions were stubbed locally, not run against production.
+
 ## Held work
+
+ACME 1.98 is downloaded/reviewed but NOT enabled: its actual `/srv/acme.sh`
+queries `mta_sts` and joins it with `alias_domain`, while this fork's schema does
+not provide that table. Query failure is nonfatal in the image, but changes SAN
+discovery and logs SQL errors. Certificate acquisition can also reload Nginx,
+Dovecot, and Postfix. Keep ACME 1.92 until we agree on a narrowly tested legacy
+schema adaptation and back up certificate/account keys. Do not force renewal,
+add schema, or replace working certificate names as part of these commands.
+
+Watchdog 2.11 is downloaded/reviewed but NOT enabled: it unconditionally starts
+`postfix-tlspol_checks` for a service absent from this deployment. Keep 2.07 until
+an explicit compatibility gate is reviewed and tested. Do not add postfix-tlspol
+or migrate the mail stack to satisfy a monitoring image.
 
 Do not update Postfix, introduce postfix-tlspol, migrate spamalias schema, replace
 the direct-SQL Dovecot authentication path, switch UFW/iptables backends, merge

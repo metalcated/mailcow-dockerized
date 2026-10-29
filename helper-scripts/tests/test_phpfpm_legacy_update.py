@@ -44,7 +44,7 @@ def baseline(path):
     return run("git", "show", BASELINE + ":" + path)
 
 
-def compose(source, image=None, nginx_image=None, sogo_image=None, clamd_image=None, redis_image=None, unbound_image=None, rspamd_image=None):
+def compose(source, image=None, nginx_image=None, sogo_image=None, clamd_image=None, redis_image=None, unbound_image=None, rspamd_image=None, dockerapi_image=None):
     env = os.environ.copy()
     env.pop("PHPFPM_IMAGE", None)
     env.pop("NGINX_IMAGE", None)
@@ -53,6 +53,7 @@ def compose(source, image=None, nginx_image=None, sogo_image=None, clamd_image=N
     env.pop("REDIS_IMAGE", None)
     env.pop("UNBOUND_IMAGE", None)
     env.pop("RSPAMD_IMAGE", None)
+    env.pop("DOCKERAPI_IMAGE", None)
     env.pop("COMPOSE_FILE", None)
     env.update({
         "TZ": "America/New_York", "DBNAME": "fixture", "DBUSER": "fixture",
@@ -74,6 +75,8 @@ def compose(source, image=None, nginx_image=None, sogo_image=None, clamd_image=N
         env["UNBOUND_IMAGE"] = unbound_image
     if rspamd_image is not None:
         env["RSPAMD_IMAGE"] = rspamd_image
+    if dockerapi_image is not None:
+        env["DOCKERAPI_IMAGE"] = dockerapi_image
     return json.loads(run(
         "docker", "compose", "--env-file", os.devnull,
         "--project-directory", str(ROOT), "-f", "-", "config", "--format", "json",
