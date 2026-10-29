@@ -45,12 +45,15 @@ Outlook behavior, production hooks, real signing keys, certificate renewal,
 and host Docker API negotiation require server/client validation. Passing a
 local fixture does not establish those live outcomes.
 
-October 29 server evidence: Unbound 1.26.2 reported healthy/running, validated
-Cloudflare A and root DNSKEY answers (AD), and resolved gmail.com from Postfix
-and Rspamd. The `dnssec-failed.org` query timed out at five seconds, so the
-negative-validation gate is still pending, not passed. Fix `e81233ff` adds a
-read-only `verify` mode, longer paired probes with a second documented test
-domain, explicit diagnostics, and repeat-apply protection. It is merged through
+October 29 server evidence: Unbound 1.26.2 reported healthy/running and validated
+Cloudflare A and root DNSKEY answers (AD). The first short negative probe timed
+out. After pulling fix `e81233ff`, verification passed at 12:50 EDT: the same
+`dnssec-failed.org` A query returned NOERROR with checking disabled and SERVFAIL
+with validation enabled; gmail.com resolved from Postfix and Rspamd; and
+fuzzy.mailcow.email returned NOERROR with AD. The resolver was healthy after
+11 minutes of uptime. No further recreation was needed for verification.
+Real mail and existing Outlook acceptance after this DNS stage still require
+the user's confirmation before the web stage. Fix `e81233ff` is merged through
 all five preparation branches without changing any image/configuration pin.
 
 ## Stage 1: Unbound
@@ -75,6 +78,7 @@ is blocked by local changes, stop and inspect; do not reset or force checkout.
   test "$(git branch --show-current)" = 'feature/october-2026-security-backports'
   git status --short --branch
   git fetch origin
+  git merge-base --is-ancestor HEAD origin/feature/october-2026-next-unbound
   git switch --track origin/feature/october-2026-next-unbound
   bash helper-scripts/maintenance/2026-10-unbound.sh apply
 )
@@ -127,6 +131,8 @@ four files before switching. Run only after the Unbound mail/client checks pass:
   RECOVERY_DIR=$(mktemp -d backups/web-pre-october-2026-XXXXXX)
   tar -czf "$RECOVERY_DIR/web.tar.gz" data/web/js/site/debug.js data/web/inc/functions.inc.php data/web/inc/ajax/dns_diagnostics.php data/web/oauth/authorize.php
   printf 'Web recovery: %s\n' "$RECOVERY_DIR"
+  git fetch origin
+  git merge-base --is-ancestor HEAD origin/feature/october-2026-next-web
   git switch --track origin/feature/october-2026-next-web
   for FILE in inc/functions.inc.php inc/ajax/dns_diagnostics.php oauth/authorize.php; do
     docker compose exec -T php-fpm-mailcow php -l "/web/$FILE"
@@ -165,6 +171,8 @@ replication, hooks, and Outlook are live gates, not claimed fixture coverage.
   RECOVERY_DIR=$(mktemp -d backups/rspamd-source-pre-october-2026-XXXXXX)
   cp -a data/conf/rspamd/lua/rspamd.local.lua "$RECOVERY_DIR/rspamd.local.lua"
   printf 'Pre-switch Lua recovery: %s\n' "$RECOVERY_DIR"
+  git fetch origin
+  git merge-base --is-ancestor HEAD origin/feature/october-2026-next-rspamd
   git switch --track origin/feature/october-2026-next-rspamd
   bash helper-scripts/maintenance/2026-10-rspamd.sh apply
 )
@@ -203,6 +211,8 @@ still requires its own live check even though mail images remain unchanged.
   set -o pipefail
   cd /opt/mailcow-dockerized
   test "$(git branch --show-current)" = 'feature/october-2026-next-rspamd'
+  git fetch origin
+  git merge-base --is-ancestor HEAD origin/feature/october-2026-next-dockerapi
   git switch --track origin/feature/october-2026-next-dockerapi
   bash helper-scripts/maintenance/2026-10-dockerapi.sh apply
 )
@@ -231,6 +241,8 @@ used. Macro-malware detection is not asserted from a clean-document fixture.
   set -o pipefail
   cd /opt/mailcow-dockerized
   test "$(git branch --show-current)" = 'feature/october-2026-next-dockerapi'
+  git fetch origin
+  git merge-base --is-ancestor HEAD origin/feature/october-2026-next-olefy
   git switch --track origin/feature/october-2026-next-olefy
   bash helper-scripts/maintenance/2026-10-olefy.sh apply
 )
