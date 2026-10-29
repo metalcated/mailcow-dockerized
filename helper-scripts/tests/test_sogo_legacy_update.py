@@ -21,6 +21,7 @@ from test_phpfpm_legacy_update import ROOT, compose, run
 
 
 BASELINE = "f42caf12"
+STAGE = "4d1a89d2"
 OLD_IMAGE = "ghcr.io/mailcow/sogo:5.12.9-1"
 IMAGE = "ghcr.io/mailcow/sogo:5.12.12-1@sha256:dddbb48cbfbd0dd984953fd69e45ed3b33d157665f0ac3df9c0237876ebe8ae0"
 ASSETS = {
@@ -33,7 +34,7 @@ ASSETS = {
 class SogoComposeTests(unittest.TestCase):
     def test_only_sogo_image_changes(self):
         old = compose(run("git", "show", BASELINE + ":docker-compose.yml"))
-        new = compose((ROOT / "docker-compose.yml").read_text())
+        new = compose(run("git", "show", STAGE + ":docker-compose.yml"))
         old_image = old["services"]["sogo-mailcow"].pop("image")
         new_image = new["services"]["sogo-mailcow"].pop("image")
         self.assertEqual(old_image, OLD_IMAGE)
@@ -41,7 +42,7 @@ class SogoComposeTests(unittest.TestCase):
         self.assertEqual(old, new)
 
     def test_image_rollback_and_retry(self):
-        source = (ROOT / "docker-compose.yml").read_text()
+        source = run("git", "show", STAGE + ":docker-compose.yml")
         expected = compose(source)
         rollback = compose(source, sogo_image=OLD_IMAGE)
         expected["services"]["sogo-mailcow"]["image"] = OLD_IMAGE
