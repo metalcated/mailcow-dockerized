@@ -31,19 +31,27 @@ they are listed here. Read their stage notes for local evidence and blockers.
 ## Preparation evidence
 
 Compared against upstream master `55982ac7` and the accepted fork checkpoint
-`72055a93`. Published stage commits: Unbound `29286ab5`, web `be4417db`, Rspamd
+`72055a93`. Original stage commits: Unbound `29286ab5`, web `be4417db`, Rspamd
 `cb14bf54`, and Docker API `ef6bb1c2`; the final Olefy branch contains this full
 handoff. These are cumulative preparation branches, not merges into production.
 
 Local validation uses the workstation's ARM64 Docker runtime and downloaded
 multi-architecture image pins. The morning helpers rerun candidate checks on the
-actual server before replacement. Sixty-three automated checks cover image-only
+actual server before replacement. Seventy-four automated checks cover image-only
 Compose parity, explicit rollback overrides, preserved SQL/auth/proxy/theme/
 firewall files, shell/PHP syntax, real service fixtures, web/OAuth failure paths,
 and the reasons for holding ACME/watchdog. Public DNSSEC resolution, existing
 Outlook behavior, production hooks, real signing keys, certificate renewal,
 and host Docker API negotiation require server/client validation. Passing a
 local fixture does not establish those live outcomes.
+
+October 29 server evidence: Unbound 1.26.2 reported healthy/running, validated
+Cloudflare A and root DNSKEY answers (AD), and resolved gmail.com from Postfix
+and Rspamd. The `dnssec-failed.org` query timed out at five seconds, so the
+negative-validation gate is still pending, not passed. Fix `e81233ff` adds a
+read-only `verify` mode, longer paired probes with a second documented test
+domain, explicit diagnostics, and repeat-apply protection. It is merged through
+all five preparation branches without changing any image/configuration pin.
 
 ## Stage 1: Unbound
 
