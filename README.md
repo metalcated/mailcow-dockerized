@@ -24,6 +24,8 @@ Postfix, database schema, proxy, routing, and autodiscover changes are treated a
 
 This process does not imply that `legacy` automatically contains every upstream change or fixes every published CVE. Security changes are reviewed and tracked individually, and compatibility-sensitive changes remain pending until they can be validated without breaking the production mail workflow.
 
+The [October 29 staged maintenance handoff](helper-scripts/maintenance/2026-10-morning.md) records the accepted October 28 checkpoint, individually prepared follow-on branches, local test boundaries, live acceptance checks, recovery commands, and incompatible updates that remain on hold. Preparation branches are not production acceptance or permission to deploy every stage together.
+
 
 ## Want to support mailcow?
 

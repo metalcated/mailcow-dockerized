@@ -28,6 +28,23 @@ while preparing these branches.
 Later branches are not automatically approved for deployment merely because
 they are listed here. Read their stage notes for local evidence and blockers.
 
+## Preparation evidence
+
+Compared against upstream master `55982ac7` and the accepted fork checkpoint
+`72055a93`. Published stage commits: Unbound `29286ab5`, web `be4417db`, Rspamd
+`cb14bf54`, and Docker API `ef6bb1c2`; the final Olefy branch contains this full
+handoff. These are cumulative preparation branches, not merges into production.
+
+Local validation uses the workstation's ARM64 Docker runtime and downloaded
+multi-architecture image pins. The morning helpers rerun candidate checks on the
+actual server before replacement. Sixty-three automated checks cover image-only
+Compose parity, explicit rollback overrides, preserved SQL/auth/proxy/theme/
+firewall files, shell/PHP syntax, real service fixtures, web/OAuth failure paths,
+and the reasons for holding ACME/watchdog. Public DNSSEC resolution, existing
+Outlook behavior, production hooks, real signing keys, certificate renewal,
+and host Docker API negotiation require server/client validation. Passing a
+local fixture does not establish those live outcomes.
+
 ## Stage 1: Unbound
 
 Pin: `ghcr.io/mailcow/unbound:1.26.2-1@sha256:016bd7056ac86ef3f43ae05d38b7bfa0c59afed69ffac1eab30ea00e0850cb8b`.
@@ -104,11 +121,13 @@ do not restore SQL or overwrite local Postfix/Redis settings.
 ## Stage 3: Rspamd
 
 Pin: `ghcr.io/mailcow/rspamd:4.2.1-1@sha256:6e7375761b6234cf6db6d462dc3f68f121401e9e6b75d7889ec0b22a62f64b4c`.
-This is a major-version step, not just an operating-system refresh. Includes the
+This is a [major-version step](https://docs.rspamd.com/changelog/4.2.1/), not just an operating-system refresh. Includes the
 upstream footer fix `ff6329d0`: honor the MIME helper's returned transfer encoding
 and tolerate either generated Content header order. Both 3.14.3 and 4.2.1 passed
 actual daemon fixtures for plain/UTF-8/quoted-printable footer messages and GTUBE
-rejection with disposable Redis/HTTP peers. No production network, data, signing
+rejection with disposable Redis/HTTP peers. The final cumulative test also
+confirmed both engines detect a harmless custom signature through real ClamAV
+and can run the exact Olefy connectivity probe. No production network, data, signing
 keys, Docker socket, or host ports were used. DKIM, ClamAV, production policy,
 replication, hooks, and Outlook are live gates, not claimed fixture coverage.
 
@@ -148,7 +167,7 @@ Pin: `ghcr.io/mailcow/dockerapi:2.12@sha256:90d6f26eb3fb8a47696d8719b71e9159849d
 Actual 2.11/2.12 `modules/DockerApi.py` and certificate-generation entrypoint
 hashes match. The newer list endpoint supports optional `all=true`; its default
 still returns running containers. Offline fixtures on both images verified
-list/detail/error responses, existing reload-method names, stubbed HTTP and
+list/detail/error responses, existing reload-method names, stubbed route-handler and
 MC_CHANNEL dispatch, and the packaged event-loop setting. They do not execute
 actions or open a real Docker socket. No new host ports or access controls are
 introduced. The production control plane can restart/reload containers, so it
@@ -172,6 +191,61 @@ environment variables or issuing actions. Check the admin status/container
 views and watchdog recovery. Do not restart working Dovecot/Postfix to prove an
 API command. Rollback uses the saved `DOCKERAPI_IMAGE` override. Certificate
 reload actions were stubbed locally, not run against production.
+
+## Stage 5: Olefy
+
+Pin: `ghcr.io/mailcow/olefy:1.15@sha256:cec980cddf162594f5f1a7b575ae95c0f17f0c42febcfac94a478eca2d2bfd9e`.
+Retains port 10055, the configured Python/olevba paths, minimum size, scanner
+policy, and Rspamd integration. Old/new images passed actual socket PING,
+minimum-size rejection, and a harmless synthetic OpenXML document scan using
+the real packaged oletools. No external network or production attachments were
+used. Macro-malware detection is not asserted from a clean-document fixture.
+
+```sh
+(
+  set -eu
+  set -o pipefail
+  cd /opt/mailcow-dockerized
+  test "$(git branch --show-current)" = 'feature/october-2026-next-dockerapi'
+  git switch --track origin/feature/october-2026-next-olefy
+  bash helper-scripts/maintenance/2026-10-olefy.sh apply
+)
+```
+
+The helper tags the previous image, tests a disconnected scanner first,
+replaces only Olefy, repeats harmless scanner checks, and checks reachability
+from the production Rspamd container. Send/receive a normal Office attachment
+and check Rspamd for scanner failures. Do not disable scanning to clear a failure.
+Rollback uses the saved `OLEFY_IMAGE` override; there is no data-volume migration.
+
+## Stop and recovery rules
+
+Run one stage, inspect output, then confirm the corresponding live paths before
+running the next box. A shell exiting early means STOP, not "continue anyway."
+The helpers default to `check`; `apply` is explicit. No full-stack `up`, `down`,
+volume deletion, forced branch switch, schema migration, or firewall adjustment
+belongs in this sequence. Keep the snapshot, recovery directories, and old
+image tags until the entire maintenance cycle is accepted.
+
+An image override in a rollback command is temporary for that invocation.
+Subsequent ordinary Compose commands would select the branch's newer default
+again. After rollback, stop and document the chosen recovery state before any
+other deployment command. For a durable return to the preceding stage, switch
+back to its branch and recreate only the affected service after inspecting
+local changes. Never restore SQL/Redis or untar state blindly over live data.
+
+If a box stops after switching branches but before replacement, diagnose the
+error and rerun the stage helper on that same branch, rather than rerunning the
+whole branch-switch box. After replacement, retain the ORIGINAL recovery record:
+a new helper run tags whichever image is running then, which may already be the
+candidate and is not a replacement for the original rollback image. Do not
+repeat `apply` to hide a failed post-update check.
+
+The web stage rolls back by switching to the Unbound stage and restarting PHP.
+Source rollback for Rspamd uses the pre-switch Lua copy or the web-stage branch;
+the newer footer Lua was also tested with 3.14.3. A complete VM snapshot restore
+would discard mail received since the snapshot; do not use it as an automatic
+fallback while the mail server is receiving new messages.
 
 ## Held work
 

@@ -18,6 +18,8 @@ IMAGE = "ghcr.io/mailcow/rspamd:4.2.1-1@sha256:6e7375761b6234cf6db6d462dc3f68f12
 OLD_IMAGE = "ghcr.io/mailcow/rspamd:3.14.3-1"
 REDIS = "redis:7.4.12-alpine@sha256:338fbfc036dc5517ac0b04d6de21521085935336e565f223406180e9d84166e2"
 PHP = "ghcr.io/mailcow/phpfpm:8.2.35-1@sha256:f8fe320173eb99afeb3cfb65ecb3b45c92d7a56c9890a516efbcb13e5ca647fa"
+CLAMD = "ghcr.io/mailcow/clamd:1.4.6-1@sha256:0d512b3a179c5f97e6f3132d1f88d9ec72c456fc6f7ba32a664ed4327fbd1436"
+OLEFY = "ghcr.io/mailcow/olefy:1.15@sha256:cec980cddf162594f5f1a7b575ae95c0f17f0c42febcfac94a478eca2d2bfd9e"
 
 # Copy the same mounted configuration onto the image's own versioned defaults.
 BOOTSTRAP = r'''
@@ -65,12 +67,28 @@ class RspamdRuntimeTests(unittest.TestCase):
                 php = prefix + "-http"
                 containers.append(php)
                 run("docker", "run", "-d", "--name", php, "--network", network, "--network-alias", "nginx", "--mount", "type=bind,src={},dst=/fixture,readonly".format(fixture), "--entrypoint", "php", PHP, "-S", "0.0.0.0:8081", "/fixture/router.php")
+                clamd = prefix + "-clamd"
+                containers.append(clamd)
+                run("docker", "run", "-d", "--name", clamd, "--network", network, "--network-alias", "clamd",
+                    "--mount", "type=bind,src={},dst=/etc/clamav,readonly".format(ROOT / "data/conf/clamav"),
+                    "--entrypoint", "bash", CLAMD, "-ec", "mkdir -p /tmp/db /run/clamav; printf '%s\\n' 'MailcowFixture:0:*:6d61696c636f772066697874757265' > /tmp/db/fixture.ndb; chown -R clamav:clamav /tmp/db /run/clamav; exec clamd --datadir=/tmp/db")
+                for attempt in range(30):
+                    ready = subprocess.run(["docker", "exec", clamd, "clamdscan", "--ping", "1"], capture_output=True)
+                    if ready.returncode == 0:
+                        break
+                    time.sleep(1)
+                else:
+                    self.fail("Fixture ClamAV startup failed")
+                olefy = prefix + "-olefy"
+                containers.append(olefy)
+                run("docker", "run", "-d", "--name", olefy, "--network", network, "--network-alias", "olefy",
+                    "-e", "OLEFY_BINDADDRESS=0.0.0.0", "-e", "OLEFY_BINDPORT=10055", "-e", "OLEFY_OLEVBA_PATH=/usr/bin/olevba",
+                    "--entrypoint", "/usr/bin/python3", OLEFY, "-u", "/app/olefy.py")
                 for index, image in enumerate((OLD_IMAGE, IMAGE)):
                     name = prefix + "-" + str(index)
                     containers.append(name)
                     run("docker", "run", "-d", "--name", name, "--network", network,
                         "--add-host", "rspamd:127.0.0.1", "--add-host", "dovecot:127.0.0.1",
-                        "--add-host", "clamd:127.0.0.1", "--add-host", "olefy:127.0.0.1",
                         "--mount", "type=bind,src={},dst=/fixture,readonly".format(ROOT / "data/conf/rspamd"),
                         "--entrypoint", "bash", image, "-ec", BOOTSTRAP)
                     for attempt in range(30):
@@ -93,6 +111,10 @@ class RspamdRuntimeTests(unittest.TestCase):
                     gtube = "From: spam@example.test\r\nTo: receiver@example.test\r\nSubject: GTUBE\r\n\r\nXJS*C4JDBQADN1.NSBN3*2IDNEN*GTUBE-STANDARD-ANTI-UBE-TEST-EMAIL*C.34X\r\n"
                     report = json.loads(run("docker", "exec", "-i", name, "rspamc", "-h", "127.0.0.1:11333", "-j", "--settings", settings, input=gtube))
                     self.assertEqual(report["action"], "reject", report)
+                    sample = "From: sender@example.test\r\nTo: receiver@example.test\r\nSubject: harmless antivirus marker\r\n\r\nmailcow fixture marker\r\n"
+                    av = json.loads(run("docker", "exec", "-i", name, "rspamc", "-h", "127.0.0.1:11333", "-j", "--settings", '{"symbols_enabled":["CLAM_VIRUS"]}', input=sample))
+                    self.assertIn("CLAM_VIRUS", av["symbols"], av)
+                    run("docker", "exec", name, "bash", "-ec", 'printf "PING\\n\\n" | nc -q 1 -w 5 olefy 10055 | grep -qx PONG')
                     run("docker", "stop", name)
         finally:
             for name in reversed(containers):

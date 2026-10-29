@@ -11,7 +11,7 @@ OLD_IMAGE = "ghcr.io/mailcow/dockerapi:2.11"
 
 class DockerApiScopeTests(unittest.TestCase):
     def test_only_dockerapi_image_and_override(self):
-        source = (ROOT / "docker-compose.yml").read_text()
+        source = run("git", "show", "ef6bb1c2:docker-compose.yml")
         before = compose(run("git", "show", BASELINE + ":docker-compose.yml"))
         before["services"]["dockerapi-mailcow"]["image"] = IMAGE
         after = compose(source)
