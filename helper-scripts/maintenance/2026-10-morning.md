@@ -56,6 +56,15 @@ Real mail and existing Outlook acceptance after this DNS stage still require
 the user's confirmation before the web stage. Fix `e81233ff` is merged through
 all five preparation branches without changing any image/configuration pin.
 
+October 29 web recovery: the user confirmed the admin UI works after restoring
+mode 0644 on the four checked-out web source files. The deployment block left
+umask 077 active during Git checkout, creating owner-only files that the PHP
+www-data worker could not read. This was reproduced locally with real Git.
+All Git updates below now use a scoped umask 022; private backup creation keeps
+umask 077. Syntax/readability checks run as www-data, not container root.
+Do not apply recursive chmod/chown to the checkout: local configuration,
+credentials, and recovery archives must retain their restricted permissions.
+
 ## Stage 1: Unbound
 
 Pin: `ghcr.io/mailcow/unbound:1.26.2-1@sha256:016bd7056ac86ef3f43ae05d38b7bfa0c59afed69ffac1eab30ea00e0850cb8b`.
@@ -79,7 +88,7 @@ is blocked by local changes, stop and inspect; do not reset or force checkout.
   git status --short --branch
   git fetch origin
   git merge-base --is-ancestor HEAD origin/feature/october-2026-next-unbound
-  git switch --track origin/feature/october-2026-next-unbound
+  (umask 022; git switch --track origin/feature/october-2026-next-unbound)
   bash helper-scripts/maintenance/2026-10-unbound.sh apply
 )
 ```
@@ -133,10 +142,11 @@ four files before switching. Run only after the Unbound mail/client checks pass:
   printf 'Web recovery: %s\n' "$RECOVERY_DIR"
   git fetch origin
   git merge-base --is-ancestor HEAD origin/feature/october-2026-next-web
-  git switch --track origin/feature/october-2026-next-web
+  (umask 022; git switch --track origin/feature/october-2026-next-web)
   for FILE in inc/functions.inc.php inc/ajax/dns_diagnostics.php oauth/authorize.php; do
-    docker compose exec -T php-fpm-mailcow php -l "/web/$FILE"
+    docker compose exec -T --user www-data php-fpm-mailcow php -l "/web/$FILE"
   done
+  docker compose exec -T --user www-data php-fpm-mailcow php -r 'exit(is_readable("/web/js/site/debug.js") ? 0 : 1);'
   docker compose restart php-fpm-mailcow
   docker compose logs --since=2m --tail=70 php-fpm-mailcow
 )
@@ -173,7 +183,7 @@ replication, hooks, and Outlook are live gates, not claimed fixture coverage.
   printf 'Pre-switch Lua recovery: %s\n' "$RECOVERY_DIR"
   git fetch origin
   git merge-base --is-ancestor HEAD origin/feature/october-2026-next-rspamd
-  git switch --track origin/feature/october-2026-next-rspamd
+  (umask 022; git switch --track origin/feature/october-2026-next-rspamd)
   bash helper-scripts/maintenance/2026-10-rspamd.sh apply
 )
 ```
@@ -213,7 +223,7 @@ still requires its own live check even though mail images remain unchanged.
   test "$(git branch --show-current)" = 'feature/october-2026-next-rspamd'
   git fetch origin
   git merge-base --is-ancestor HEAD origin/feature/october-2026-next-dockerapi
-  git switch --track origin/feature/october-2026-next-dockerapi
+  (umask 022; git switch --track origin/feature/october-2026-next-dockerapi)
   bash helper-scripts/maintenance/2026-10-dockerapi.sh apply
 )
 ```
@@ -243,7 +253,7 @@ used. Macro-malware detection is not asserted from a clean-document fixture.
   test "$(git branch --show-current)" = 'feature/october-2026-next-dockerapi'
   git fetch origin
   git merge-base --is-ancestor HEAD origin/feature/october-2026-next-olefy
-  git switch --track origin/feature/october-2026-next-olefy
+  (umask 022; git switch --track origin/feature/october-2026-next-olefy)
   bash helper-scripts/maintenance/2026-10-olefy.sh apply
 )
 ```
