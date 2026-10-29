@@ -63,6 +63,22 @@ failed probe needs diagnosis, not disabling DNSSEC. Check normal delivery and
 existing Outlook without removing/re-adding working accounts before stage 2.
 Docker health may lag direct DNS readiness. Keep the snapshot and recovery tags.
 
+If the image already started but the old short DNSSEC check timed out, update
+this SAME branch and use `bash helper-scripts/maintenance/2026-10-unbound.sh verify`.
+This mode performs queries/status reads only: no pull, recreation, backup, or
+new rollback tag. Do not repeat `apply` after replacement. The helper now refuses
+to label the running candidate as a fresh rollback image.
+
+Verification prints complete DNS replies and exit codes. Positive validation
+requires NOERROR plus AD. The negative gate allows 15 seconds per query and a
+bounded retry, trying the documented test domains `dnssec-failed.org` and
+`brokendnssec.net`. It requires a control A answer with checking disabled for
+that request only, followed by SERVFAIL with validation enabled. If neither
+domain completes that pair, the result stays NOT PASSED, not a silent skip or
+an automatic rollback. No DNSSEC setting, firewall rule, or host sysctl changes.
+This follows [Cloudflare's DNSSEC diagnosis](https://developers.cloudflare.com/dns/dnssec/troubleshooting/)
+and [Ubuntu's guidance](https://ubuntu.com/server/docs/how-to/networking/dnssec-troubleshooting/).
+
 ## Stage 2: web hardening
 
 Based on [upstream PR 7426](https://github.com/mailcow/mailcow-dockerized/pull/7426),
