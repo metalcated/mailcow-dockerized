@@ -1,6 +1,71 @@
 # October 29 maintenance handoff
 
-## Verified production checkpoint
+## October 29 deployed checkpoint
+
+The user completed the staged deployment and reported "Looks good." The final
+server output confirms `feature/october-2026-next-olefy`, Rspamd 4.2.1, Docker API
+2.12, and Olefy 1.15. The earlier accepted PHP/Nginx/SOGo/ClamAV/Redis/Unbound
+stages remain the recorded baseline. Do not replay the deployment boxes below
+or create fresh rollback tags from the now-updated services.
+
+| Component | Recorded deployed version |
+| --- | --- |
+| PHP-FPM | 8.2.35-1 |
+| Nginx | 1.30.6-1 |
+| SOGo | 5.12.12-1 |
+| ClamAV | 1.4.6-1 |
+| Redis | 7.4.12-alpine |
+| Unbound | 1.26.2-1 |
+| Rspamd | 4.2.1-1 |
+| Docker API | 2.12 |
+| Olefy | 1.15 |
+
+Live evidence from the user's output:
+
+- Rspamd was running 4.2.1 and the user passed the attachment mail gate. It was
+  still running two hours later in the final status output.
+- Before Docker API replacement, MC_CHANNEL had zero subscribers. Restarting
+  only the existing 2.11 service restored one subscriber. The 2.12 helper then
+  passed its subscription gate and PHP read-only API query (22 container
+  records). The user passed the admin status/container-view gate.
+- Olefy 1.15 passed PING, intentional minimum-size rejection, and a harmless
+  synthetic OpenXML scan in the live service. Rspamd-to-Olefy returned PONG.
+  These fixture results do not establish malicious-macro detection or replace
+  real client acceptance; no independent browser/Outlook inspection was made.
+- Postfix 1.80 and Dovecot 2.3.21.1-2 still reported two months of uptime in the
+  final output. No schema/authentication/proxy/firewall migration was included.
+
+Retain these original recovery records and the corresponding rollback images:
+
+| Service | Recovery directory under /opt/mailcow-dockerized | Rollback image |
+| --- | --- | --- |
+| Rspamd | backups/rspamd-pre-october-2026-20261029-143935-AtQ2FK | mailcow-rspamd-rollback:pre-october-2026-20261029143935 |
+| Docker API | backups/dockerapi-pre-october-2026-20261029-163042-miVJFn | mailcow-dockerapi-rollback:pre-october-2026-20261029163042 |
+| Olefy | backups/olefy-pre-october-2026-20261029-163122-1EW5Gi | mailcow-olefy-rollback:pre-october-2026-20261029163122 |
+
+The attachment's five-byte Olefy error is the expected negative fixture. The
+single watchdog "Cannot find dockerapi-mailcow" message coincides with service
+replacement; the subsequent successful API read confirms API availability.
+Olefy's Python syntax/deprecation warnings did not prevent the live probes.
+Rspamd fuzzy-server timeouts, an IPv6 "Network is unreachable" map fetch, and
+slow external DNS rules remain follow-up items, not silently passed checks.
+Mail was processed in that same log; external-check coverage is not fully
+verified by successful delivery alone.
+
+Docker API's background listener can exit on a Redis connection error in both
+2.11 and 2.12; this was reproduced offline with a synthetic exception and no
+Docker actions. A stale subscription following Redis maintenance is a plausible
+cause of the zero baseline, not proven historical causation. After future Redis
+maintenance, verify MC_CHANNEL recovery; do not assume HTTP readiness proves
+the listener is alive. No automatic restart or reconnect-code change is added.
+
+The server remains on the deployed Olefy branch. This documentation/permissions
+follow-up is on `feature/october-2026-checkout-permissions`; it changes no image
+pins or runtime source. Nothing was merged into legacy/master. ACME/watchdog,
+Postfix/schema changes, fresh New Outlook onboarding, and the broader component
+and host vulnerability audit remain outside this completed deployment sequence.
+
+## October 28 baseline
 
 The user deployed and checked PHP 8.2.35, Nginx 1.30.6, SOGo 5.12.12,
 ClamAV 1.4.6, and Redis 7.4.12 on October 28. Mail/UI and normal attachment
