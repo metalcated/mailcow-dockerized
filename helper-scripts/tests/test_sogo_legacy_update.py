@@ -69,6 +69,7 @@ class SogoComposeTests(unittest.TestCase):
         for block in blocks:
             run("bash", "-n", input=block)
         self.assertIn("cmp \"$RECOVERY_DIR/old-startup.sha256\"", doc)
+        self.assertIn("Existing untracked LDAP script found; stop for review.", doc)
         self.assertNotIn("run --rm --no-deps --pull", doc)
 
 
