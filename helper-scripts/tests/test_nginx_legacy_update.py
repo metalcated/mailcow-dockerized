@@ -8,6 +8,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shutil
 import tempfile
 import unittest
 import uuid
@@ -62,6 +63,8 @@ class NginxComposeTests(unittest.TestCase):
         self.assertGreaterEqual(len(blocks), 3)
         for block in blocks:
             run("bash", "-n", input=block)
+            self.assertNotIn("--entrypoint sh", block)
+        self.assertIn("nginx-mailcow nginx -t", doc)
         self.assertNotIn("run --rm --no-deps --pull", doc)
 
 
@@ -77,37 +80,59 @@ class NginxRuntimeTests(unittest.TestCase):
             "-subj", "/CN=mail.example.test", "-keyout", str(cls.ssl / "key.pem"),
             "-out", str(cls.ssl / "cert.pem"))
 
-    def render(self, image, disabled, proxy_protocol="n"):
+    def render(self, image, disabled, proxy_protocol="n", normal_startup=False):
         name = "mailcow-nginx-check-" + uuid.uuid4().hex
+        if normal_startup:
+            config = tempfile.TemporaryDirectory(prefix="mailcow-nginx-config-")
+            self.addCleanup(config.cleanup)
+            shutil.copytree(ROOT / "data/conf/nginx", Path(config.name) / "conf.d")
+            config_mount = "type=bind,src={},dst=/etc/nginx/conf.d".format(Path(config.name) / "conf.d")
+        else:
+            config_mount = "type=tmpfs,dst=/etc/nginx/conf.d"
         command = [
             "docker", "run", "--rm", "--name", name, "--pull=never", "--network=none",
-            "--mount", "type=tmpfs,dst=/etc/nginx/conf.d",
+            "--mount", config_mount,
             "--mount", "type=bind,src={},dst=/fixtures,readonly".format(ROOT / "data/conf/nginx"),
             "--mount", "type=bind,src={},dst=/bootstrap.py,readonly".format(ROOT / "data/Dockerfiles/nginx/bootstrap.py"),
             "--mount", "type=bind,src={},dst=/etc/ssl/mail,readonly".format(self.ssl),
             "--env", "MAILCOW_HOSTNAME=mail.example.test",
-            "--env", "PHPFPMHOST=127.0.0.1", "--env", "SOGOHOST=127.0.0.1",
-            "--env", "RSPAMDHOST=127.0.0.1", "--env", "DISABLE_IPv6=" + disabled,
+            "--env", "PHPFPMHOST=" + ("" if normal_startup else "127.0.0.1"),
+            "--env", "SOGOHOST=" + ("" if normal_startup else "127.0.0.1"),
+            "--env", "RSPAMDHOST=" + ("" if normal_startup else "127.0.0.1"),
+            "--env", "IPV4_NETWORK=127.0.0",
+            "--env", "DISABLE_IPv6=" + disabled,
             "--env", "NGINX_USE_PROXY_PROTOCOL=" + proxy_protocol,
             "--env", "TRUSTED_PROXIES=192.0.2.0/24,198.51.100.1",
+            "--add-host", "php-fpm-mailcow:127.0.0.1",
+            "--add-host", "rspamd-mailcow:127.0.0.1",
         ]
         if os.getenv("MAILCOW_TEST_PLATFORM"):
             command += ["--platform", os.environ["MAILCOW_TEST_PLATFORM"]]
         script = """
-            cp -R /fixtures/. /etc/nginx/conf.d/
-            python3 /bootstrap.py
             nginx -t
             nginx -v 2>&1
             python3 -c 'import json; from pathlib import Path; print(json.dumps({p: Path(p).read_text() for p in ["/etc/nginx/nginx.conf", "/etc/nginx/includes/sites-default.conf", "/etc/nginx/conf.d/listen_plain.active", "/etc/nginx/conf.d/listen_ssl.active"]}))'
         """
         try:
-            output = run(*command, "--entrypoint", "sh", image, "-ec", script)
+            if normal_startup:
+                output = run(*command, image, "sh", "-ec", script)
+            else:
+                script = "cp -R /fixtures/. /etc/nginx/conf.d/\npython3 /bootstrap.py\n" + script
+                output = run(*command, "--entrypoint", "sh", image, "-ec", script)
         except BaseException:
             subprocess.run(["docker", "stop", "--time", "1", name],
                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=15)
             raise
         self.assertIn("nginx/1.30.6" if image == IMAGE else "nginx/1.30.4", output)
         return json.loads(output.splitlines()[-1])
+
+    def test_normal_entrypoint_defaults_empty_backend_hosts(self):
+        configs = self.render(IMAGE, "n", normal_startup=True)
+        site = configs["/etc/nginx/includes/sites-default.conf"]
+        self.assertIn("fastcgi_pass php-fpm-mailcow:9002;", site)
+        self.assertIn("http://127.0.0.248:20000", site)
+        self.assertIn("http://rspamd-mailcow:11334", site)
+        self.assertNotIn("fastcgi_pass :", site)
 
     def test_rendered_configuration_matches_old_image(self):
         for disabled, proxy_protocol in (("n", "n"), ("y", "n"), ("n", "y")):
