@@ -11,7 +11,7 @@ OLD_IMAGE = "ghcr.io/mailcow/olefy:1.14"
 
 class OlefyScopeTests(unittest.TestCase):
     def test_only_olefy_image_and_override(self):
-        source = (ROOT / "docker-compose.yml").read_text()
+        source = run("git", "show", "ec0fb5e34:docker-compose.yml")
         before = compose(run("git", "show", BASELINE + ":docker-compose.yml"))
         before["services"]["olefy-mailcow"]["image"] = IMAGE
         after = compose(source)

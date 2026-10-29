@@ -425,7 +425,7 @@ services:
           condition: service_started
         unbound-mailcow:
           condition: service_healthy
-      image: ghcr.io/mailcow/acme:1.92
+      image: ${ACME_IMAGE:-ghcr.io/mailcow/acme:1.98@sha256:ebbd0e6a7d5313189f847d0d6219507a693f6d77d257c1671ebab9656680a5ba}
       dns:
         - ${IPV4_NETWORK:-172.22.1}.254
       environment:
@@ -456,6 +456,9 @@ services:
         - ./data/assets/ssl:/var/lib/acme/:z
         - ./data/assets/ssl-example:/var/lib/ssl-example/:ro,Z
         - mysql-socket-vol-1:/var/run/mysqld/
+        - ./data/Dockerfiles/acme/acme.sh:/srv/acme.sh:ro,z
+        - ./data/Dockerfiles/acme/functions.sh:/srv/functions.sh:ro,z
+        - ./data/Dockerfiles/acme/obtain-certificate.sh:/srv/obtain-certificate.sh:ro,z
       restart: always
       networks:
         mailcow-network:
