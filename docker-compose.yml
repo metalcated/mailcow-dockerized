@@ -185,7 +185,7 @@ services:
             - phpfpm
 
     sogo-mailcow:
-      image: ghcr.io/mailcow/sogo:5.12.9-1
+      image: ${SOGO_IMAGE:-ghcr.io/mailcow/sogo:5.12.12-1@sha256:dddbb48cbfbd0dd984953fd69e45ed3b33d157665f0ac3df9c0237876ebe8ae0}
       environment:
         - DBNAME=${DBNAME}
         - DBUSER=${DBUSER}

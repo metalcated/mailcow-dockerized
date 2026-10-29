@@ -18,6 +18,7 @@ from test_phpfpm_legacy_update import ROOT, compose, run
 
 
 BASELINE = "5cabaf3c"
+STAGE = "f42caf12"
 OLD_IMAGE = "ghcr.io/mailcow/nginx:1.30.4-1"
 IMAGE = "ghcr.io/mailcow/nginx:1.30.6-1@sha256:68697b99f272527dc38bbfb4c8cf217c02dffc7bc0a0b3b19b0c5256eda2aef4"
 
@@ -25,7 +26,8 @@ IMAGE = "ghcr.io/mailcow/nginx:1.30.6-1@sha256:68697b99f272527dc38bbfb4c8cf217c0
 class NginxComposeTests(unittest.TestCase):
     def test_only_nginx_image_and_bootstrap_mount_change(self):
         before = compose(run("git", "show", BASELINE + ":docker-compose.yml"))
-        after = compose((ROOT / "docker-compose.yml").read_text())
+        # Later stage tests verify that current compose preserves this sealed stage.
+        after = compose(run("git", "show", STAGE + ":docker-compose.yml"))
         old = before["services"].pop("nginx-mailcow")
         new = after["services"].pop("nginx-mailcow")
         self.assertEqual(before, after)
@@ -39,7 +41,7 @@ class NginxComposeTests(unittest.TestCase):
         self.assertEqual(old, new)
 
     def test_image_rollback_and_retry(self):
-        source = (ROOT / "docker-compose.yml").read_text()
+        source = run("git", "show", STAGE + ":docker-compose.yml")
         expected = compose(source)
         rollback = compose(source, nginx_image=OLD_IMAGE)
         expected["services"]["nginx-mailcow"]["image"] = OLD_IMAGE
