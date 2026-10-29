@@ -72,11 +72,36 @@ class SogoComposeTests(unittest.TestCase):
         self.assertIn("Existing untracked LDAP script found; stop for review.", doc)
         self.assertNotIn("run --rm --no-deps --pull", doc)
         self.assertNotIn("supervisorctl", doc)
+        self.assertNotIn("docker compose run", doc)
+        checks = [line.strip() for line in doc.splitlines()
+                  if line.strip().startswith("docker run ")]
+        self.assertEqual(len(checks), 2)
+        for check in checks:
+            self.assertIn("--network=none", check)
+            self.assertIn("--pull=never", check)
+            self.assertNotIn("/var/run/mysqld", check)
+            self.assertNotIn("/sogo_web", check)
+        self.assertEqual(checks[1].count(",readonly\""), 2)
 
 
 @unittest.skipUnless(os.getenv("MAILCOW_TEST_SOGO_RUNTIME") == "1",
                      "Set MAILCOW_TEST_SOGO_RUNTIME=1 for offline startup fixtures")
 class SogoRuntimeTests(unittest.TestCase):
+    def test_documented_preflight_runs_without_compose_network_or_volumes(self):
+        doc = (ROOT / "helper-scripts/maintenance/2026-10-sogo.md").read_text()
+        checks = [line.strip() for line in doc.splitlines()
+                  if line.strip().startswith("docker run ")]
+        with tempfile.TemporaryDirectory(prefix="mailcow-sogo-preflight-") as directory:
+            env = os.environ.copy()
+            env.update({"SOGO_TARGET": IMAGE, "RECOVERY_DIR": directory,
+                        "PWD": str(ROOT)})
+            for check in checks:
+                run("bash", "-euc", check, env=env)
+            actual = (Path(directory) / "new-startup.sha256").read_text()
+            expected = self.container(OLD_IMAGE, ["-ec",
+                "sha256sum /bootstrap-sogo.sh /docker-entrypoint.sh /etc/supervisor/supervisord.conf"])
+            self.assertEqual(actual, expected)
+
     def container(self, image, args, mounts=(), env=()):
         name = "mailcow-sogo-check-" + uuid.uuid4().hex
         command = ["docker", "run", "--rm", "--name", name, "--pull=never", "--network=none"]
