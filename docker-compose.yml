@@ -117,12 +117,14 @@ services:
             - rspamd
 
     php-fpm-mailcow:
-      image: ghcr.io/mailcow/phpfpm:8.2.29-2
+      image: ${PHPFPM_IMAGE:-ghcr.io/mailcow/phpfpm:8.2.35-1@sha256:f8fe320173eb99afeb3cfb65ecb3b45c92d7a56c9890a516efbcb13e5ca647fa}
       command: "php-fpm -d date.timezone=${TZ} -d expose_php=0"
       depends_on:
         - redis-mailcow
       volumes:
         - ./data/hooks/phpfpm:/hooks:Z
+        # Preserve legacy DB initialization; the upstream script expects spamalias.permanent.
+        - ./data/Dockerfiles/phpfpm/docker-entrypoint.sh:/docker-entrypoint.sh:ro,z
         - ./data/web:/web:z
         - ./data/conf/rspamd/dynmaps:/dynmaps:ro,z
         - ./data/conf/rspamd/custom/:/rspamd_custom_maps:z
