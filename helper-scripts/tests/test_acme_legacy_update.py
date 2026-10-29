@@ -14,7 +14,7 @@ SCRIPTS = ("acme.sh", "functions.sh", "obtain-certificate.sh")
 class AcmeScopeTests(unittest.TestCase):
     def test_only_acme_image_and_three_readonly_adapters_change(self):
         before = compose(run("git", "show", BASELINE + ":docker-compose.yml"))
-        source = (ROOT / "docker-compose.yml").read_text()
+        source = run("git", "show", "c99fa35d:docker-compose.yml")
         after = compose(source)
         expected = copy.deepcopy(before)
         expected["services"]["acme-mailcow"]["image"] = IMAGE

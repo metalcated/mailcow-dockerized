@@ -487,7 +487,8 @@ services:
         - ./data/Dockerfiles/netfilter/modules/IPTables.py:/app/modules/IPTables.py:ro,z
 
     watchdog-mailcow:
-      image: ghcr.io/mailcow/watchdog:2.07
+      image: ${WATCHDOG_IMAGE:-ghcr.io/mailcow/watchdog:2.11@sha256:5436050d566d972cb157225f8a2b5c828c6bb188118f3bcab94dd8db065892c7}
+      command: ["/bin/bash", "${WATCHDOG_SCRIPT:-/watchdog-legacy-entrypoint.sh}"]
       dns:
         - ${IPV4_NETWORK:-172.22.1}.254
       tmpfs:
@@ -497,6 +498,7 @@ services:
         - mysql-socket-vol-1:/var/run/mysqld/
         - postfix-vol-1:/var/spool/postfix
         - ./data/assets/ssl:/etc/ssl/mail/:ro,z
+        - ./data/Dockerfiles/watchdog/legacy-entrypoint.sh:/watchdog-legacy-entrypoint.sh:ro,z
       restart: always
       depends_on:
         - postfix-mailcow
@@ -505,6 +507,9 @@ services:
         - acme-mailcow
         - redis-mailcow
       environment:
+        - DEV_MODE=n
+        - WATCHDOG_POSTFIX_TLSPOL=${WATCHDOG_POSTFIX_TLSPOL:-n}
+        - SKIP_OLEFY=${SKIP_OLEFY:-n}
         - IPV6_NETWORK=${IPV6_NETWORK:-fd4d:6169:6c63:6f77::/64}
         - LOG_LINES=${LOG_LINES:-9999}
         - TZ=${TZ}

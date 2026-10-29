@@ -44,7 +44,7 @@ def baseline(path):
     return run("git", "show", BASELINE + ":" + path)
 
 
-def compose(source, image=None, nginx_image=None, sogo_image=None, clamd_image=None, redis_image=None, unbound_image=None, rspamd_image=None, dockerapi_image=None, olefy_image=None, acme_image=None):
+def compose(source, image=None, nginx_image=None, sogo_image=None, clamd_image=None, redis_image=None, unbound_image=None, rspamd_image=None, dockerapi_image=None, olefy_image=None, acme_image=None, watchdog_image=None, watchdog_script=None):
     env = os.environ.copy()
     env.pop("PHPFPM_IMAGE", None)
     env.pop("NGINX_IMAGE", None)
@@ -56,6 +56,9 @@ def compose(source, image=None, nginx_image=None, sogo_image=None, clamd_image=N
     env.pop("DOCKERAPI_IMAGE", None)
     env.pop("OLEFY_IMAGE", None)
     env.pop("ACME_IMAGE", None)
+    env.pop("WATCHDOG_IMAGE", None)
+    env.pop("WATCHDOG_SCRIPT", None)
+    env.pop("WATCHDOG_POSTFIX_TLSPOL", None)
     env.pop("COMPOSE_FILE", None)
     env.update({
         "TZ": "America/New_York", "DBNAME": "fixture", "DBUSER": "fixture",
@@ -83,6 +86,10 @@ def compose(source, image=None, nginx_image=None, sogo_image=None, clamd_image=N
         env["OLEFY_IMAGE"] = olefy_image
     if acme_image is not None:
         env["ACME_IMAGE"] = acme_image
+    if watchdog_image is not None:
+        env["WATCHDOG_IMAGE"] = watchdog_image
+    if watchdog_script is not None:
+        env["WATCHDOG_SCRIPT"] = watchdog_script
     return json.loads(run(
         "docker", "compose", "--env-file", os.devnull,
         "--project-directory", str(ROOT), "-f", "-", "config", "--format", "json",
