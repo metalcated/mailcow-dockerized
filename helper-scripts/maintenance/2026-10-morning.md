@@ -63,6 +63,44 @@ failed probe needs diagnosis, not disabling DNSSEC. Check normal delivery and
 existing Outlook without removing/re-adding working accounts before stage 2.
 Docker health may lag direct DNS readiness. Keep the snapshot and recovery tags.
 
+## Stage 2: web hardening
+
+Based on [upstream PR 7426](https://github.com/mailcow/mailcow-dockerized/pull/7426),
+adapted to this fork's `debug.js`, not upstream's renamed dashboard. Changes
+are limited to log/DNS output encoding, logger JSON flags, and OAuth redirect
+termination/missing-user guards. Zonefile exports decode presentation entities
+back to their original DNS text. The Nginx client-IP/header change is omitted
+because of [DAV/EAS logging regression 7470](https://github.com/mailcow/mailcow-dockerized/issues/7470).
+No images, schema, SOGo theme, or mail authentication paths change in this stage.
+
+Switching branches changes bind-mounted web files immediately, so back up the
+four files before switching. Run only after the Unbound mail/client checks pass:
+
+```sh
+(
+  set -eu
+  set -o pipefail
+  umask 077
+  cd /opt/mailcow-dockerized
+  test "$(git branch --show-current)" = 'feature/october-2026-next-unbound'
+  RECOVERY_DIR=$(mktemp -d backups/web-pre-october-2026-XXXXXX)
+  tar -czf "$RECOVERY_DIR/web.tar.gz" data/web/js/site/debug.js data/web/inc/functions.inc.php data/web/inc/ajax/dns_diagnostics.php data/web/oauth/authorize.php
+  printf 'Web recovery: %s\n' "$RECOVERY_DIR"
+  git switch --track origin/feature/october-2026-next-web
+  for FILE in inc/functions.inc.php inc/ajax/dns_diagnostics.php oauth/authorize.php; do
+    docker compose exec -T php-fpm-mailcow php -l "/web/$FILE"
+  done
+  docker compose restart php-fpm-mailcow
+  docker compose logs --since=2m --tail=70 php-fpm-mailcow
+)
+```
+
+Verify admin log tables, DNS diagnostics and zonefile download, OAuth login /
+approve / deny / retry / expired-session behavior when configured, quarantine,
+fresh SOGo SSO, and normal mail. Hard-refresh the browser for the JS change.
+Rollback is switching to the preceding Unbound branch and restarting PHP only;
+do not restore SQL or overwrite local Postfix/Redis settings.
+
 ## Held work
 
 Do not update Postfix, introduce postfix-tlspol, migrate spamalias schema, replace

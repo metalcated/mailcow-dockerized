@@ -345,7 +345,7 @@ if (isset($_SESSION['mailcow_cc_role']) && ($_SESSION['mailcow_cc_role'] == "adm
           stripos($current['txt'], 'v=dmarc') === 0 &&
           $record[2] == $dmarc_link) {
             $current['txt'] = str_replace(' ', '', $current['txt']);
-            $state = $current[$data_field[$current['type']]] . state_optional;
+            $state = htmlspecialchars($current[$data_field[$current['type']]], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . state_optional;
           }
           elseif ($current['type'] == 'TXT' &&
           stripos($current['txt'], 'v=spf') === 0 &&
@@ -355,7 +355,7 @@ if (isset($_SESSION['mailcow_cc_role']) && ($_SESSION['mailcow_cc_role'] == "adm
             if (in_array($ip, $rslt) && in_array(expand_ipv6($ip6), $rslt)) {
               $state = state_good;
             }
-            $state .= '<br />' . $current[$data_field[$current['type']]] . state_optional;
+            $state .= '<br />' . htmlspecialchars($current[$data_field[$current['type']]], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . state_optional;
           }
           elseif ($current['type'] == 'TXT' &&
           stripos($current['txt'], 'v=dkim') === 0 &&
@@ -385,7 +385,7 @@ if (isset($_SESSION['mailcow_cc_role']) && ($_SESSION['mailcow_cc_role'] == "adm
         if ($state == state_nomatch) {
           $state = array();
           foreach ($currents as $current) {
-            $state[] = $current[$data_field[$current['type']]];
+            $state[] = htmlspecialchars($current[$data_field[$current['type']]], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
           }
           $state = implode('<br />', $state);
         }
@@ -395,7 +395,7 @@ if (isset($_SESSION['mailcow_cc_role']) && ($_SESSION['mailcow_cc_role'] == "adm
           <td>%s</td>
           <td class="dns-found">%s</td>
           <td class="dns-recommended">%s</td>
-        </tr>', $record[0], $record[1], $record[2], $state);
+        </tr>', htmlspecialchars($record[0], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), htmlspecialchars($record[1], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), $record[2], $state);
         $record[3] = explode('<br />', $state);
       }
 
@@ -421,7 +421,7 @@ if (isset($_SESSION['mailcow_cc_role']) && ($_SESSION['mailcow_cc_role'] == "adm
               $val = str_replace(state_optional, '', $val);
               $val = str_replace(state_good, '', $val);
               if (strlen($val) > 0) {
-                $vals[] = sprintf("%s\tIN\t%s\t%s\n", $label, $record[1], $val);
+                $vals[] = sprintf("%s\tIN\t%s\t%s\n", $label, $record[1], html_entity_decode($val, ENT_QUOTES | ENT_HTML5, 'UTF-8'));
               }
             }
           }
@@ -436,7 +436,7 @@ if (isset($_SESSION['mailcow_cc_role']) && ($_SESSION['mailcow_cc_role'] == "adm
       }
       ?>
     </table>
-    <a id='download-zonefile' class="btn btn-sm btn-secondary visible-xs-block visible-sm-inline visible-md-inline visible-lg-inline mb-4" style="margin-top:10px" data-zonefile="<?=base64_encode($dns_data);?>" download='<?=$_GET['domain'];?>.txt' type='text/csv'>Download</a>
+    <a id='download-zonefile' class="btn btn-sm btn-secondary visible-xs-block visible-sm-inline visible-md-inline visible-lg-inline mb-4" style="margin-top:10px" data-zonefile="<?=base64_encode($dns_data);?>" download='<?=htmlspecialchars($_GET['domain'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');?>.txt' type='text/csv'>Download</a>
     <script>
       var zonefile_dl_link = document.getElementById('download-zonefile');
       var zonefile = atob(zonefile_dl_link.getAttribute('data-zonefile'));

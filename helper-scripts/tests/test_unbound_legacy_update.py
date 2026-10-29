@@ -9,13 +9,14 @@ import unittest
 from test_phpfpm_legacy_update import ROOT, compose, run
 
 BASELINE = "72055a93"
+STAGE = "29286ab5"
 IMAGE = "ghcr.io/mailcow/unbound:1.26.2-1@sha256:016bd7056ac86ef3f43ae05d38b7bfa0c59afed69ffac1eab30ea00e0850cb8b"
 OLD_IMAGE = "ghcr.io/mailcow/unbound:1.25.1-1"
 
 
 class UnboundComposeTests(unittest.TestCase):
     def test_only_image_changes_and_rollback(self):
-        source = (ROOT / "docker-compose.yml").read_text()
+        source = run("git", "show", STAGE + ":docker-compose.yml")
         old = compose(run("git", "show", BASELINE + ":docker-compose.yml"))
         new = compose(source)
         self.assertEqual(old["services"]["unbound-mailcow"].pop("image"), OLD_IMAGE)
