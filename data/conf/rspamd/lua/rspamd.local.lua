@@ -611,6 +611,7 @@ rspamd_config:register_symbol({
             -- add footer
             local out = {}
             local rewrite = lua_mime.add_text_footer(task, footer.html, footer.plain) or {}
+            local new_cte = rewrite.new_cte or 'quoted-printable'
         
             local seen_cte
             local newline_s = newline(task)
@@ -631,13 +632,13 @@ rspamd_config:register_symbol({
                   return
                 elseif name:lower() == 'content-transfer-encoding' then
                   out[#out + 1] = string.format('%s: %s',
-                      'Content-Transfer-Encoding', 'quoted-printable')
+                      'Content-Transfer-Encoding', new_cte)
                   -- update Content-Transfer-Encoding header
                   task:set_milter_reply({
                     remove_headers = {['Content-Transfer-Encoding'] = 0},
                   })
                   task:set_milter_reply({
-                    add_headers = {['Content-Transfer-Encoding'] = 'quoted-printable'}
+                    add_headers = {['Content-Transfer-Encoding'] = new_cte}
                   })
                   seen_cte = true
                   return
@@ -649,7 +650,7 @@ rspamd_config:register_symbol({
             task:headers_foreach(rewrite_ct_cb, {full = true})
         
             if not seen_cte and rewrite.need_rewrite_ct then
-              out[#out + 1] = string.format('%s: %s', 'Content-Transfer-Encoding', 'quoted-printable')
+              out[#out + 1] = string.format('%s: %s', 'Content-Transfer-Encoding', new_cte)
             end
         
             -- End of headers
@@ -668,7 +669,7 @@ rspamd_config:register_symbol({
                 out_parts[#out_parts + 1] = o
                 out_parts[#out_parts + 1] = newline_s
               else
-                local removePrefix = "--\x0D\x0AContent-Type"
+                local removePrefix = "--\x0D\x0AContent-"
                 if string.lower(string.sub(tostring(o[1]), 1, string.len(removePrefix))) == string.lower(removePrefix) then
                   o[1] = string.sub(tostring(o[1]), string.len("--\x0D\x0A") + 1)
                 end

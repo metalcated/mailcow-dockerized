@@ -84,7 +84,7 @@ services:
             - clamd
 
     rspamd-mailcow:
-      image: ghcr.io/mailcow/rspamd:3.14.3-1
+      image: ${RSPAMD_IMAGE:-ghcr.io/mailcow/rspamd:4.2.1-1@sha256:6e7375761b6234cf6db6d462dc3f68f121401e9e6b75d7889ec0b22a62f64b4c}
       stop_grace_period: 30s
       depends_on:
         - dovecot-mailcow

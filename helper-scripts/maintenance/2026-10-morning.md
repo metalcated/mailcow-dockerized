@@ -101,6 +101,47 @@ fresh SOGo SSO, and normal mail. Hard-refresh the browser for the JS change.
 Rollback is switching to the preceding Unbound branch and restarting PHP only;
 do not restore SQL or overwrite local Postfix/Redis settings.
 
+## Stage 3: Rspamd
+
+Pin: `ghcr.io/mailcow/rspamd:4.2.1-1@sha256:6e7375761b6234cf6db6d462dc3f68f121401e9e6b75d7889ec0b22a62f64b4c`.
+This is a major-version step, not just an operating-system refresh. Includes the
+upstream footer fix `ff6329d0`: honor the MIME helper's returned transfer encoding
+and tolerate either generated Content header order. Both 3.14.3 and 4.2.1 passed
+actual daemon fixtures for plain/UTF-8/quoted-printable footer messages and GTUBE
+rejection with disposable Redis/HTTP peers. No production network, data, signing
+keys, Docker socket, or host ports were used. DKIM, ClamAV, production policy,
+replication, hooks, and Outlook are live gates, not claimed fixture coverage.
+
+```sh
+(
+  set -eu
+  set -o pipefail
+  umask 077
+  cd /opt/mailcow-dockerized
+  test "$(git branch --show-current)" = 'feature/october-2026-next-web'
+  RECOVERY_DIR=$(mktemp -d backups/rspamd-source-pre-october-2026-XXXXXX)
+  cp -a data/conf/rspamd/lua/rspamd.local.lua "$RECOVERY_DIR/rspamd.local.lua"
+  printf 'Pre-switch Lua recovery: %s\n' "$RECOVERY_DIR"
+  git switch --track origin/feature/october-2026-next-rspamd
+  bash helper-scripts/maintenance/2026-10-rspamd.sh apply
+)
+```
+
+The helper saves the previous image, Rspamd files/state, and a consistent Redis
+RDB before replacement. Rspamd state is an online best-effort archive; the server
+snapshot remains the consistent whole-system recovery point. It never flushes
+Redis, converts a schema, or automatically restores older data. Disconnected
+configtest cannot resolve public fuzzy maps; existing missing custom-map and
+timeout-budget warnings must be compared with the baseline, not ignored as new
+errors. Stop if `syntax OK` fails. Image rollback uses the saved `RSPAMD_IMAGE`
+override; the updated footer Lua was also tested with the older image.
+
+Before advancing: send/receive externally in both directions, include an
+attachment and configured footer, inspect the delivered MIME text and DKIM
+result, verify quarantine/release and normal policy, and reconnect a working
+Outlook account without deleting it. Do not bypass antivirus or weaken spam
+policy to get a green result. A failed test stops this stage.
+
 ## Held work
 
 Do not update Postfix, introduce postfix-tlspol, migrate spamalias schema, replace

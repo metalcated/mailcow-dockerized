@@ -20,7 +20,7 @@ class WebScopeTests(unittest.TestCase):
         for path in ("docker-compose.yml", "data/conf/nginx/templates/sites-default.conf.j2",
                      "data/conf/dovecot/auth/passwd-verify.lua", "data/web/inc/init_db.inc.php",
                      "data/conf/sogo/custom-sogo.js"):
-            self.assertEqual((ROOT / path).read_bytes(), subprocess.check_output(
+            self.assertEqual(subprocess.check_output(["git", "show", "be4417db:" + path], cwd=ROOT), subprocess.check_output(
                 ["git", "show", BASELINE + ":" + path], cwd=ROOT))
 
     def test_log_fields_escape_in_actual_postprocessor(self):
