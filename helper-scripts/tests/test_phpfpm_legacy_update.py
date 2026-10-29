@@ -124,6 +124,14 @@ class ComposeRegressionTests(unittest.TestCase):
             with self.subTest(block=number):
                 run("bash", "-n", input=block)
 
+    def test_runbook_selects_php_without_dependency_images(self):
+        selector = r"/^ghcr[.]io\/mailcow\/phpfpm[:@]/"
+        runbook = (ROOT / "helper-scripts/maintenance/2026-10-php.md").read_text()
+        self.assertIn("awk '" + selector + "'", runbook)
+        images = "ghcr.io/mailcow/netfilter:1.64\n" + IMAGE + "\nredis:7.4.8-alpine\n"
+        self.assertEqual(run("awk", selector, input=images).strip(), IMAGE)
+        self.assertEqual(run("awk", selector, input="redis:7.4.8-alpine\n"), "")
+
 
 @unittest.skipUnless(os.getenv("MAILCOW_TEST_PHP_RUNTIME") == "1",
                      "Set MAILCOW_TEST_PHP_RUNTIME=1 for offline image checks")
