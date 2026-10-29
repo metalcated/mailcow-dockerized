@@ -71,6 +71,7 @@ class SogoComposeTests(unittest.TestCase):
         self.assertIn("cmp \"$RECOVERY_DIR/old-startup.sha256\"", doc)
         self.assertIn("Existing untracked LDAP script found; stop for review.", doc)
         self.assertNotIn("run --rm --no-deps --pull", doc)
+        self.assertNotIn("supervisorctl", doc)
 
 
 @unittest.skipUnless(os.getenv("MAILCOW_TEST_SOGO_RUNTIME") == "1",
