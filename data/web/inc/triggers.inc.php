@@ -1,6 +1,6 @@
 <?php
 // SSO Domain Admin
-if (!empty($_GET['sso_token'])) {
+if (!empty($_GET['sso_token']) && mailcow_admin_ip_allowed()) {
   $username = domain_admin_sso('check', $_GET['sso_token']);
 
   if ($username !== false) {

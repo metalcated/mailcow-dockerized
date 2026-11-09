@@ -397,6 +397,7 @@ if (isset($_GET['query'])) {
             session_destroy();
             exit;
           }
+          mailcow_enforce_admin_session_ip();
           $_SESSION["mailcow_cc_username"] = $process_fido2['username'];
           $_SESSION["fido2_cid"] = $process_fido2['cid'];
           unset($_SESSION["challenge"]);
