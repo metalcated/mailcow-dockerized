@@ -89,6 +89,9 @@ if (!empty($_SERVER['HTTP_X_API_KEY'])) {
   }
 }
 
+// Enforce after current API-key verification, before any authenticated action.
+mailcow_enforce_admin_session_ip();
+
 // Handle logouts
 if (isset($_POST["logout"])) {
   if (isset($_SESSION["dual-login"])) {

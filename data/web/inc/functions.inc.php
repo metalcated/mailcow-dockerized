@@ -2,6 +2,7 @@
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\SMTP;
 use PHPMailer\PHPMailer\Exception;
+require_once __DIR__ . '/admin-access.inc.php';
 function is_valid_regex($exp) {
   return @preg_match($exp, '') !== false;
 }
@@ -835,7 +836,7 @@ function check_login($user, $pass, $app_passwd_data = false) {
   $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
   foreach ($rows as $row) {
     // verify password
-    if (verify_hash($row['password'], $pass)) {
+    if (verify_hash($row['password'], $pass) && mailcow_admin_ip_allowed()) {
       // check for tfa authenticators
       $authenticators = get_tfa($user);
       if (isset($authenticators['additional']) && is_array($authenticators['additional']) && count($authenticators['additional']) > 0) {
@@ -874,7 +875,7 @@ function check_login($user, $pass, $app_passwd_data = false) {
   $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
   foreach ($rows as $row) {
     // verify password
-    if (verify_hash($row['password'], $pass) !== false) {
+    if (verify_hash($row['password'], $pass) !== false && mailcow_admin_ip_allowed()) {
       // check for tfa authenticators
       $authenticators = get_tfa($user);
       if (isset($authenticators['additional']) && is_array($authenticators['additional']) && count($authenticators['additional']) > 0) {
@@ -1699,6 +1700,7 @@ function get_tfa($username = null, $id = null) {
     }
 }
 function verify_tfa_login($username, $_data) {
+  if (in_array($_SESSION['pending_mailcow_cc_role'] ?? '', ['admin', 'domainadmin'], true) && !mailcow_admin_ip_allowed()) return false;
   global $pdo;
   global $yubi;
   global $u2f;
@@ -1867,6 +1869,7 @@ function verify_tfa_login($username, $_data) {
               }
             }
 
+            mailcow_enforce_admin_session_ip();
             $_SESSION["mailcow_cc_username"] = $process_webauthn['username'];
             $_SESSION['tfa_id'] = $process_webauthn['id'];
             $_SESSION['authReq'] = null;
